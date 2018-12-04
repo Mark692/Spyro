@@ -11,20 +11,20 @@ import os
 class Log():
     '''
     Creates a Logs directory in which save the log files.
-    Each file is uniquely named according to titleFormat variable
+    Each file is uniquely named according to TITLE_FORMAT variable
     
     Optional parameters - **kwargs
     **path = (str) Choose the path where to save your logs
     '''
     
     #Sets the path to save log files
-    saveIn = "./Logs/"
+    SAVE_IN = "./Logs/"
     
     #Determines how to entitle each log file
-    titleFormat = "%Y-%m-%d - %H:%M:%S"
+    TITLE_FORMAT = "%Y-%m-%d - %H:%M:%S"
     
     #Enables a unique name to each new log file
-    fileAlreadyExists = 0 
+    FILE_ALREADY_EXISTS = 0 
     
     
     
@@ -32,7 +32,7 @@ class Log():
         '''
         Creates any intermediary directory without raising exceptions whether they already exist
         '''
-        os.makedirs(self.saveIn, exist_ok = True)
+        os.makedirs(self.SAVE_IN, exist_ok = True)
     
     
     
@@ -46,10 +46,10 @@ class Log():
             newLogFile = open(title, 'x') #'x' - create a new file and open it for writing
             
         except IOError:
-            self.fileAlreadyExists += 1
+            self.FILE_ALREADY_EXISTS += 1
             self.createNewFile()
 
-        self.resetFAEcounter()
+        self.FILE_ALREADY_EXISTS = 0
         self.myLogFile = newLogFile
             
 
@@ -58,23 +58,17 @@ class Log():
         '''
         Defines how to give a name to a new log file
         '''
-        title = self.saveIn + time.strftime(self.titleFormat)   
+        title = self.SAVE_IN + time.strftime(self.TITLE_FORMAT)   
         
-        if(self.fileAlreadyExists == 0):
+        if(self.FILE_ALREADY_EXISTS == 0):
             return title
         
-        return title + " (" + str(self.fileAlreadyExists) + ")"
+        return title + " (" + str(self.FILE_ALREADY_EXISTS) + ")"
         
         
         
-    def resetFAEcounter(self):
-        self.fileAlreadyExists = 0
-        
-        
-        
-    def writeNewLog(self):
-        self.myLogFile.write("Mah, non saprei\n")
-        self.myLogFile.write("L'ho creato in " + self.saveIn + "\n")
+    def writeNewLog(self, data):
+        self.myLogFile.write(data + "\n")
         
         
         
@@ -94,8 +88,8 @@ class Log():
             userSelectedPath = userSelectedPath[1:]
             
         if userSelectedPath is None or userSelectedPath == "":
-            if not self.saveIn is None:
-                return self.sanitizeLogPath(self.saveIn) #In case it's read from file and it needs to be sanitized
+            if not self.SAVE_IN is None:
+                return self.sanitizeLogPath(self.SAVE_IN) #In case it's read from file and it needs to be sanitized
         
         #Finally let's ensure to enter the specified directory
         if not userSelectedPath.endswith("/"):
@@ -106,17 +100,46 @@ class Log():
         if userSelectedPath.startswith("/"):
             userSelectedPath = "." + userSelectedPath
             
-        self.saveIn = userSelectedPath
+        self.SAVE_IN = userSelectedPath
         
         
         
-    def __init__(self, **kwargs):
+    def cf_log(self):
+        '''
+        Kinda useless right now. 
+        This is just a (quick) list of locations/directories where to find information about CF logging parameters and structs
+        '''
+        
+        parameters2Log = "crazyflie-firmware/" + "src/" + "modules/" + "src/" + "stabilizer.c"
+        #LOG_GROUP_START(SomeNameToUse)
+        #LOG_ADD(varType, clientDisplayedName, &actualVariableReference)
+        #LOG_GROUP_STOP(SomeNameToUse)
+        
+        logStructDefinition = "crazyflie-firmware/" + "src/" + "modules/" + "interface/" + "log.h"
+        ##define LOG_GROUP_START(NAME)  \
+        #static const struct log_s __logs_##NAME[] __attribute__((section(".log." #NAME), used)) = { \
+        #LOG_ADD_GROUP(LOG_GROUP | LOG_START, NAME, 0x0)
+        ##define LOG_GROUP_STOP(NAME) \
+        #LOG_ADD_GROUP(LOG_GROUP | LOG_STOP, stop_##NAME, 0x0) \
+        #};
+        #Nota 1 - "\" alla fine di ciascuna riga -> https://stackoverflow.com/questions/19405196/what-does-a-backslash-in-c-mean
+        #Nota 2 - "##" corrisponde alla concatenazione di due parametri all'interno di una struct -> https://stackoverflow.com/questions/6503586/what-does-in-a-define-mean
+        
+        transferCvars2Python = "https://stackoverflow.com/questions/38944172/how-to-pass-variable-value-from-c-to-python"
+        #cython = "https://cython.org/"
+        c2python = "https://stackoverflow.com/questions/145270/calling-c-c-from-python"
+        wrapC_intoPython = "https://intermediate-and-advanced-software-carpentry.readthedocs.io/en/latest/c++-wrapping.html"
+        lastHope_butAlsoNot = "https://docs.python-guide.org/scenarios/clibs/"
+        
+        
+        
+    def __init__(self, *args, **kwargs):
         '''
         Constructor
         '''
         self.sanitizeLogPath(kwargs['path'])
-            
         self.makeDirectory()
-        #self.createNewFile()
-        #self.writeNewLog()
+        
+        self.createNewFile()
+        self.writeNewLog(args)
         
