@@ -125,6 +125,17 @@ class Log():
         #Nota 1 - "\" alla fine di ciascuna riga -> https://stackoverflow.com/questions/19405196/what-does-a-backslash-in-c-mean
         #Nota 2 - "##" corrisponde alla concatenazione di due parametri all'interno di una struct -> https://stackoverflow.com/questions/6503586/what-does-in-a-define-mean
         
+        loggingVariables = "usr/local/lib/python3.6/dist-packages/cflib/crazyflie/log.py"
+        l4className = "LogConfig_line141"
+        l4funcName  = "add_variable_line164"
+        #from cflib.crazyflie.log import LogConfig
+        #self._lg_stab = LogConfig(name='Stabilizer', period_in_ms=1000)
+        ##name - Complete name of the variable in the form group.name = stabilizer.roll
+        #self._lg_stab.add_variable('stabilizer.roll', 'float')
+        
+        
+        
+        
         transferCvars2Python = "https://stackoverflow.com/questions/38944172/how-to-pass-variable-value-from-c-to-python"
         #cython = "https://cython.org/"
         c2python = "https://stackoverflow.com/questions/145270/calling-c-c-from-python"
