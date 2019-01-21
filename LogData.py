@@ -26,6 +26,8 @@ class Log():
     #Enables a unique name to each new log file
     FILE_ALREADY_EXISTS = 0 
     
+    #Sets the Header
+    LOG_HEADER = ""
     
     
     def makeDirectory(self):
@@ -67,7 +69,21 @@ class Log():
         
         
         
+        
+    def writeHeader(self, data):
+        '''
+        Write the first row with Timestamp,var1,...,varn\n
+        '''
+        LOG_HEADER = data.timestamp() #QUESTO DEVE ESSERE IL TIMESTAMP DEL DRONE
+        for var2log in data:
+            LOG_HEADER += var2log
+            
+        
     def writeNewLog(self, data):
+        '''
+        Write the header and the log flow to the file
+        '''
+        self.writeHeader(data)
         self.myLogFile.write(data + "\n")
         
         
@@ -152,5 +168,5 @@ class Log():
         self.makeDirectory()
         
         self.createNewFile()
-        self.writeNewLog(args)
+        self.writeNewLog(*args)
         

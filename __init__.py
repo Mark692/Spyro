@@ -7,7 +7,7 @@ import LogData
 from Connection import findMyDrone
 import BaseLog as log
 #import problemiRiscontrati
-from variablesToLog import cluster as clst
+from variablesToLog import cluster as clusterLog
 
 if __name__ == '__main__':
 
@@ -17,10 +17,16 @@ if __name__ == '__main__':
     #LogData.Log(**log_KWArgs)
     
     
+    c = findMyDrone()
+    rangeDrones = range(len(c.drones))
+    for i in rangeDrones:
+        print(i,") - ",c.drones[i][0])
+    print("Hey" +  str(len(c.drones)))
     
-    if(1==1):
+    
+    if(1==14):
         c = findMyDrone()
-        drone = c.droneURI
+        drone = c.get_DroneURI()
         
         strangeError = True
         while strangeError:
