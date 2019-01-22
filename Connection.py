@@ -21,7 +21,6 @@ class findMyDrone():
         self.initializeDrivers()
         #self.scanRadioChannel() #This is not GUI intended
         self.gui_scanForDrones()
-        #self.gui_cyclicScan()
         
         
         
@@ -29,8 +28,7 @@ class findMyDrone():
         '''
         Initialize the low-level drivers (don't list the debug drivers)
         '''
-        radioChannel.init_drivers(enable_debug_driver=False)
-        
+        radioChannel.init_drivers(enable_debug_driver=False)        
         
     def gui_scanForDrones(self):
         '''

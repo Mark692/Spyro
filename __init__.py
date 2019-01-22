@@ -17,15 +17,18 @@ if __name__ == '__main__':
     #LogData.Log(**log_KWArgs)
     
     
-    c = findMyDrone()
-    rangeDrones = range(len(c.drones))
-    for i in rangeDrones:
-        print(i,") - ",c.drones[i][0])
-    print("Hey" +  str(len(c.drones)))
+    #===========================================================================
+    # c = findMyDrone()
+    # rangeDrones = range(len(c.drones))
+    # for i in rangeDrones:
+    #     print(i,") - ",c.drones[i][0])
+    # print("Hey" +  str(len(c.drones)))
+    #===========================================================================
     
     
-    if(1==14):
+    if(1==1):
         c = findMyDrone()
+        c.scanRadioChannel()
         drone = c.get_DroneURI()
         
         strangeError = True

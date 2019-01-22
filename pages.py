@@ -11,6 +11,10 @@ from tkinter import ttk  # Sort of CSS for TKinter
 import tkinter as tk  # Base graphics
 from Connection import findMyDrone
 from tkinter import StringVar, Radiobutton
+import time
+import threading
+import BaseLog as log
+
 
 # Matplotlib graphs
 
@@ -27,6 +31,10 @@ liveGraphButton = "Live Graph!"
 
 staticGraphLabel = "Just some boring data..."
 staticGraphButton = "Look at our data"
+
+elapsedTime = 0
+connection = findMyDrone()
+drones = connection.get_dronesList()
 
  
  
@@ -52,7 +60,9 @@ class WelcomePage(tk.Frame):
         
         buttonSCAN = ttk.Button(self,
                            text="Scan for drones!",
-                           command=lambda: self.findDrones(root, controller))
+                           #command=lambda: self.findDrones(root, controller))
+                           command=lambda: controller.showPage(root, droneScan))
+        
         buttonSCAN.grid()
         
         
@@ -66,8 +76,6 @@ class WelcomePage(tk.Frame):
         controller.showPage(root, droneScan)
         
         
-    
-    
 class droneScan(tk.Frame):
     '''
     tk.Frame - Frame used to host the drones available at the moment
@@ -84,23 +92,53 @@ class droneScan(tk.Frame):
                          font=self.LARGE_FONT0)
         label.grid(row=0, column=0)
         
-        #HERE SHOULD BE A LIST OF AVAILABLE DRONES
-        #RADIO BUTTON FOR EACH ONE
-        drones = ["A", "DroneB", "---"]
         
-        self.selected = tk.StringVar()
-        self.selected.set(drones[0]) #Set as "selected" the first drone found
-        for d in drones:
-            ttk.Radiobutton(self, 
-                           text = d,
-                           variable = self.selected,
-                           value = d).grid()
-            
-        btn_ConnectToDrone = ttk.Button(self,
-                           text="Connect!",
-                           command=lambda: self.connectAction(root, controller))
-        btn_ConnectToDrone.grid()
+        #Scan the radio channel looking for drones
+        #connection = findMyDrone()
+        global drones
+        drones = connection.get_dronesList()
         
+        lookingForDrones_text = "This is what I've found so far"
+        label = ttk.Label(self,
+                     text=lookingForDrones_text,
+                     font=self.LARGE_FONT0)
+        label.grid(row=0, column=0, sticky="nsew")
+   
+
+        #=======================================================================
+        # global elapsedTime
+        # print(elapsedTime)
+        # if len(drones) == 0:
+        #     time.sleep(1)
+        #     elapsedTime += 1
+        #     print(elapsedTime)
+        #     if elapsedTime > 2:
+        #         drones = ["Ahahahaah funziona?!"]
+        #     else:
+        #         droneScan(root, controller) #Sadly I have to call this class again in order to load and display it
+        #=======================================================================
+        while len(drones) == 0:
+            time.sleep(1)
+            drones = connection.get_dronesList()
+            #lookingForDrones_text += "."
+            #label.configure(text = lookingForDrones_text)
+        
+        
+        print("E' già buono che tu sia arrivato qui ma...")
+        if len(drones) != 0:
+            print("Qua devi arrivare!")
+            self.selected = tk.StringVar()
+            self.selected.set(drones[0][0]) #Set as "selected" the first drone found
+            for d in drones:
+                ttk.Radiobutton(self, 
+                               text = d[0],
+                               variable = self.selected,
+                               value = d[0]).grid()
+                
+            btn_ConnectToDrone = ttk.Button(self,
+                               text="Connect!",
+                               command=lambda: self.connectAction(root, controller))
+            btn_ConnectToDrone.grid()
         
         
     def connectAction(self, root, controller):
@@ -115,17 +153,11 @@ class droneScan(tk.Frame):
         if self.selectedDrone == "" or self.selectedDrone == None:
             controller.showPage(root, droneScan)
         else:
-            print(self.selectedDrone)
+            print("Hai selezionato: " + self.selectedDrone) #Status bar in basso in cui compare il drone selezionato?
+            log.LoggingExample(self.selectedDrone)
+            
             controller.showPage(root, welcomeConnected)
             
-    
-    def droneIsConnected(self):
-        '''
-        Checks whether the selected drone is still available
-        It may occur that the signal is lost while trying to connect expecially when the drone has low battery
-        '''
-        return self.selectedDrone == "" or self.selectedDrone == None
-    
     
 class welcomeConnected(tk.Frame):
     '''
@@ -200,7 +232,6 @@ class logGroups(tk.Frame):
                            text=self.txt_FlightPoints,
                            command=lambda: controller.showPage(root, flightPoints))
         goTo_FlightPoints.grid()
-        print("HOOOOOOOOLA")
         
     
 class PageOne(tk.Frame):

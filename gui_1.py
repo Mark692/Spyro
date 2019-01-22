@@ -85,17 +85,19 @@ class MainCore(tk.Tk):
         
         #At the end of __init__ show the welcome page
         
-        self.dictionary = {}  # Dictionary definition
-        myPagesList = [page.droneScan,
-                       page.welcomeConnected,
-                       page.flightPoints, 
-                       page.logGroups, 
-                       page.WelcomePage] 
-        for newPageToShow in (myPagesList):
-                 
-            frame = newPageToShow(wholeWindowContainer, self)
-            frame.grid(row=0, column=0, sticky="nsew")  # The frame will strech to the whole window
-            self.dictionary[newPageToShow] = frame
+        #=======================================================================
+        # self.dictionary = {}  # Dictionary definition
+        # myPagesList = [page.droneScan,
+        #                page.welcomeConnected,
+        #                page.flightPoints, 
+        #                page.logGroups, 
+        #                page.WelcomePage] 
+        # for newPageToShow in (myPagesList):
+        #          
+        #     frame = newPageToShow(wholeWindowContainer, self)
+        #     frame.grid(row=0, column=0, sticky="nsew")  # The frame will strech to the whole window
+        #     self.dictionary[newPageToShow] = frame
+        #=======================================================================
         #self.show_frame(newPageToShow)
         
         self.showPage(wholeWindowContainer, page.WelcomePage)

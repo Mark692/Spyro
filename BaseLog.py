@@ -51,29 +51,11 @@ class LoggingExample:
             # Variable used to keep main loop occupied until disconnect
             self.is_connected = True
             
-            self.printTOC()
             #self.flySync(droneLink)
             
         else:
             print("No drone provided. Going back to scan the radio channel!\n")
             return Connection.findMyDrone()
-
-
-    def printTOC(self):
-        '''
-        a me non funziona
-        '''
-        toc = self._cf.log.toc
-        
-        for group in list(toc.keys()):
-            print("Gruppo: " + group + " - ")
-            for param in list(toc[group].keys()):
-                print("Parametro: " + param)
-                print("\n")
-        
-        
-        
-        
         
 
     def addNewLogGroup(self, groupName, loggingPeriod, *args):
