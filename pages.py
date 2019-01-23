@@ -34,9 +34,14 @@ staticGraphButton = "Look at our data"
 
 elapsedTime = 0
 connection = findMyDrone()
+connection.gui_scanForDrones()
 drones = connection.get_dronesList()
+selectedDrone = ""
 
- 
+logGroups_EntryButtons = []
+logGroups_Values = []
+
+flightPointsList = []
  
 def buttMessage(str2print):
     print(str2print)
@@ -83,7 +88,6 @@ class droneScan(tk.Frame):
     
     lg_Text = "Choose a drone to connect to"
     LARGE_FONT0 = ("Verdana", 18)
-    txt_logGroups = "Set your log groups"
     
     def __init__(self, root, controller):
         tk.Frame.__init__(self, root)
@@ -117,16 +121,15 @@ class droneScan(tk.Frame):
         #     else:
         #         droneScan(root, controller) #Sadly I have to call this class again in order to load and display it
         #=======================================================================
+       
+        global elapsedTime
         while len(drones) == 0:
             time.sleep(1)
+            connection.gui_scanForDrones()
             drones = connection.get_dronesList()
-            #lookingForDrones_text += "."
-            #label.configure(text = lookingForDrones_text)
         
         
-        print("E' già buono che tu sia arrivato qui ma...")
         if len(drones) != 0:
-            print("Qua devi arrivare!")
             self.selected = tk.StringVar()
             self.selected.set(drones[0][0]) #Set as "selected" the first drone found
             for d in drones:
@@ -148,13 +151,14 @@ class droneScan(tk.Frame):
         It may proceed to the real welcome page if the drone is correctly connected
         '''
         #https://likegeeks.com/python-gui-examples-tkinter-tutorial/
-        self.selectedDrone = str(self.selected.get()) #https://www.tutorialspoint.com/python/tk_radiobutton.htm
+        global selectedDrone
+        selectedDrone = str(self.selected.get()) #https://www.tutorialspoint.com/python/tk_radiobutton.htm
         
-        if self.selectedDrone == "" or self.selectedDrone == None:
+        if selectedDrone == "" or selectedDrone == None:
             controller.showPage(root, droneScan)
         else:
-            print("Hai selezionato: " + self.selectedDrone) #Status bar in basso in cui compare il drone selezionato?
-            log.LoggingExample(self.selectedDrone)
+            #print("Hai selezionato: " + selectedDrone) #Status bar in basso in cui compare il drone selezionato?
+            #log.LoggingExample(selectedDrone)
             
             controller.showPage(root, welcomeConnected)
             
@@ -164,7 +168,8 @@ class welcomeConnected(tk.Frame):
     tk.Frame - Frame used to host the initial page after connecting to a drone
     '''
     
-    lg_Text = "YOU ARE CONNECTED!!"
+    global selectedDrone
+    lg_Text = "You are connected to " + selectedDrone
     LARGE_FONT0 = ("Verdana", 14)
     txt_logGroups = "Set your log groups"
     txt_flightPoints = "Set your flight points"
@@ -177,16 +182,20 @@ class welcomeConnected(tk.Frame):
         label.grid(row=0, column=0, sticky="nsew")
 
         
+        #START LOGGING ONLY
         button1 = ttk.Button(self,
                            text=self.txt_logGroups,
-                           command=lambda: controller.showPage(root, logGroups))
+                           command=lambda: controller.showPage(root, logGroups)) #QUI DOVRÀ CAMBIARE IL COMMAND IN LOG_THIS
         button1.grid()
         
+        #START FLIGHT ONLY
         button1 = ttk.Button(self,
                            text=self.txt_flightPoints,
-                           command=lambda: controller.showPage(root, flightPoints))
+                           command=lambda: controller.showPage(root, flightPoints)) #QUI DOVRÀ CAMBIARE IL COMMAND IN FLIGHT_TO
         button1.grid()
 
+        #UN ALTRO BUTTON PER 
+        #START LOG AND FLIGHT!
 
     
 class flightPoints(tk.Frame):
@@ -225,13 +234,251 @@ class logGroups(tk.Frame):
         tk.Frame.__init__(self, root)
         label = ttk.Label(self,
                          text=self.lg_Text,
-                         font=self.LARGE_FONT0)
-        label.grid(row=0, column=0, sticky="nsew")
+                         font=self.LARGE_FONT0,
+                         justify="right")
+        label.grid(row=0, column=0, columnspan = 10, sticky="EW")
         
-        goTo_FlightPoints = tk.Button(self,
-                           text=self.txt_FlightPoints,
-                           command=lambda: controller.showPage(root, flightPoints))
-        goTo_FlightPoints.grid()
+        
+        #Separator
+        horizontalSeparator = ttk.Label(self,
+                              text = "")
+        horizontalSeparator.grid(column = 0, columnspan = 10)
+        
+
+        global logGroups_Values
+        totalGroups = len(logGroups_Values)
+        
+        if totalGroups != 0:
+            for lg in range(totalGroups):
+                self.addLogGroup(idGroup = lg, 
+                                 name  = logGroups_Values[lg][0],
+                                 var1d = logGroups_Values[lg][1],
+                                 var2d = logGroups_Values[lg][2],
+                                 var3d = logGroups_Values[lg][3],
+                                 var4d = logGroups_Values[lg][4],
+                                 var5d = logGroups_Values[lg][5],
+                                 var6d = logGroups_Values[lg][6],
+                                 time  = logGroups_Values[lg][7]
+                                 )
+        else:
+            self.addLogGroup(totalGroups)
+        
+        #=======================================================================
+        # horizontalSeparator2 = ttk.Label(self,
+        #                       text = "")
+        # horizontalSeparator2.grid(column = 0, columnspan = 10)
+        #=======================================================================
+        
+        self.addNewGroupButton(root, controller)
+        
+        
+    def addLogGroup(self, idGroup, name = "", var1d = "", var2d = "", var3d = "", var4d = "", var5d = "", var6d = "", time = 10): #FIX IT TO BE A DEFAULT-PARAMS FUNCTION
+        global logGroups_EntryButtons
+        groupID = idGroup +1
+        totalRowInEachGroup = 6 #Each group has 6 rows
+        firstRowIndex = len(logGroups_EntryButtons) * totalRowInEachGroup +2 #Newly added groups will be displayed below according to this index
+        
+        #Group
+        groupRowIndex = firstRowIndex +1
+        if name == "" or name == None:
+            groupText = "Group #" + str(groupID)
+        else:
+            groupText = name
+        groupName = ttk.Entry(self)
+        groupName.insert(0, groupText)
+        groupName.grid(row = groupRowIndex, column = 0, columnspan = 2, sticky="EW")
+        
+        
+        #Separator
+        horizontalSeparator = ttk.Label(self,
+                              text = "")
+        horizontalSeparator.grid(row = groupRowIndex+1, column = 0, columnspan = 10)
+        
+        
+        #Log period
+        logRowIndex = groupRowIndex +2
+        logPeriod = ttk.Label(self,
+                              text = "Log period: ")
+        logPeriod.grid(row = logRowIndex, column = 0, sticky="E")
+        
+        logEntry = ttk.Entry(self)
+        try:
+            if int(time) <= 10:
+                basePeriod = "10"
+            else:
+                basePeriod = time
+        except:
+            basePeriod = "10"
+            
+        logEntry.insert(0, basePeriod)
+        logEntry.grid(row = logRowIndex, column = 1)
+        
+        ms = ttk.Label(self,
+                              text = "ms")
+        ms.grid(row = logRowIndex, column = 2, sticky="W")
+        
+        
+        #Vars 1, 2 and 3
+        loggableVariables = ["None", "stabilizer.roll", "stabilizer.yaw", "stabilizer.pitch", "estimate.x", "estimate.y"]
+        varDefault = loggableVariables[0][0]
+        
+        vars123RowIndex = groupRowIndex #Horizontally aligned with the Group Name
+        var1Label = ttk.Label(self,
+                        text = "    Var #1: ")
+        var1Label.grid(row = vars123RowIndex, column = 3)
+        
+        var1_Value = tk.StringVar()
+        if var1d == "":
+            var1_Value.set(varDefault)
+        else:
+            var1_Value.set(var1d)
+        var1Entry = ttk.OptionMenu(self,
+                                   var1_Value, 
+                                   loggableVariables)
+        var1Entry.grid(row = vars123RowIndex, column = 4, columnspan = 1)
+        
+
+        var2Label = ttk.Label(self,
+                        text = "    Var #2: ")
+        var2Label.grid(row = vars123RowIndex, column = 6)
+        
+        var2_Value = tk.StringVar()
+        if var2d == "":
+            var2_Value.set(varDefault)
+        else:
+            var2_Value.set(var2d)
+        var2Entry = ttk.OptionMenu(self,
+                                   var2_Value, 
+                                   loggableVariables)
+        var2Entry.grid(row = vars123RowIndex, column = 7, columnspan = 1)
+        
+        
+        var3 = ttk.Label(self,
+                        text = "    Var #3: ")
+        var3.grid(row = vars123RowIndex, column = 9)
+        
+        var3_Value = tk.StringVar()
+        if var3d == "":
+            var3_Value.set(varDefault)
+        else:
+            var3_Value.set(var3d)
+        var3Entry = ttk.OptionMenu(self,
+                                   var3_Value, 
+                                   loggableVariables)
+        var3Entry.grid(row = vars123RowIndex, column = 10, columnspan = 1)
+        
+        
+        #Vars 4, 5, and 6
+        vars456RowIndex = logRowIndex #Horizontally aligned with the Log Period
+        var4 = ttk.Label(self,
+                        text = "    Var #4: ")
+        var4.grid(row = vars456RowIndex, column = 3)
+        
+        var4_Value = tk.StringVar()
+        if var4d == "":
+            var4_Value.set(varDefault)
+        else:
+            var4_Value.set(var4d)
+        var4Entry = ttk.OptionMenu(self,
+                                   var4_Value, 
+                                   loggableVariables)
+        var4Entry.grid(row = vars456RowIndex, column = 4, columnspan = 1)
+        
+        
+        var5 = ttk.Label(self,
+                        text = "    Var #5: ")
+        var5.grid(row = vars456RowIndex, column = 6)
+        
+        var5_Value = tk.StringVar()
+        if var5d == "":
+            var5_Value.set(varDefault)
+        else:
+            var5_Value.set(var5d)
+        var5Entry = ttk.OptionMenu(self,
+                                   var5_Value, 
+                                   loggableVariables)
+        var5Entry.grid(row = vars456RowIndex, column = 7, columnspan = 1)
+        
+        
+        var6 = ttk.Label(self,
+                        text = "    Var #6: ")
+        var6.grid(row = vars456RowIndex, column = 9)
+        
+        var6_Value = tk.StringVar()
+        if var6d == "":
+            var6_Value.set(varDefault)
+        else:
+            var6_Value.set(var6d)
+        var6Entry = ttk.OptionMenu(self,
+                                   var6_Value, 
+                                   loggableVariables)
+        var6Entry.grid(row = vars456RowIndex, column = 10, columnspan = 1)
+        
+        
+        horizontalSeparator2 = ttk.Label(self,
+                              text = "")
+        horizontalSeparator2.grid(column = 0, columnspan = 10)
+        
+        horizontalSeparator3 = ttk.Label(self,
+                              text = "")
+        horizontalSeparator3.grid(column = 0, columnspan = 10)
+        
+        #Add the current entries to the global list of Logging Groups
+        logGroups_EntryButtons.append([groupName, var1_Value, var2_Value, var3_Value, var4_Value, var5_Value, var6_Value, logEntry])
+        
+        
+        #ADD A RESET(id)  BUTTON?
+        #ADD A DELETE(id) BUTTON?
+        
+    def addNewGroupButton(self, root, controller):
+        
+        addNewGroup = ttk.Button(self,
+                                 text = "Add a new group of variables to log!",
+                                 command = lambda: self.addNewGroupHere(root, controller))
+        addNewGroup.grid(column = 4, columnspan = 3)
+        
+        
+    def addNewGroupHere(self, root, controller):
+        
+        global logGroups_EntryButtons
+        
+        self.addLogGroup(len(logGroups_EntryButtons))
+        self.saveLogGroupState()
+        controller.showPage(root, logGroups)
+        
+        
+    def saveLogGroupState(self):
+        '''
+        Save the current values of logGroup_EntryButtons into the global list logGroups_Values
+        New instantiations of "addLogGroup" can thus be made by looking at logGroups_Values 
+            so to set the user-selected values back to the form
+        Source: https://snakify.org/en/lessons/two_dimensional_lists_arrays/
+        '''
+        global logGroups_EntryButtons
+        global logGroups_Values
+        logGroups_Values = []
+        for id_group in range(len(logGroups_EntryButtons)):
+            appendThis = []
+            for id_entry in range(len(logGroups_EntryButtons[id_group])):
+                appendThis.append(logGroups_EntryButtons[id_group][id_entry].get())
+            logGroups_Values.append(appendThis)
+            
+        logGroups_EntryButtons = []
+                
+        
+    def addDefaultGroup(self):
+        None
+        
+    def loadLogGroups(self):
+        None
+        
+        
+        #=======================================================================
+        # goTo_FlightPoints = tk.Button(self,
+        #                    text=self.txt_FlightPoints,
+        #                    command=lambda: controller.showPage(root, flightPoints))
+        # goTo_FlightPoints.grid()
+        #=======================================================================
         
     
 class PageOne(tk.Frame):

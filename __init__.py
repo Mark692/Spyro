@@ -25,8 +25,18 @@ if __name__ == '__main__':
     # print("Hey" +  str(len(c.drones)))
     #===========================================================================
     
+    group1 = ["g1", "v11", "v12", "v13", "t11"]
+    group2 = ["g2", "v21", "v22", "v23", "t21"]
     
-    if(1==1):
+    listOfGroups = [group1, group2]
+    
+    for group in listOfGroups:
+        for entry in group:
+            print("Entry: " + entry)
+        print()
+    
+    
+    if(1==14):
         c = findMyDrone()
         c.scanRadioChannel()
         drone = c.get_DroneURI()

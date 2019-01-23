@@ -20,7 +20,7 @@ class findMyDrone():
         '''
         self.initializeDrivers()
         #self.scanRadioChannel() #This is not GUI intended
-        self.gui_scanForDrones()
+        #self.gui_scanForDrones()
         
         
         
