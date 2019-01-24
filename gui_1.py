@@ -33,8 +33,6 @@ class MainCore(tk.Tk):
         wholeWindowContainer.grid_columnconfigure(0, weight=1)
         
             
-            
-            
         #MENU DEFINITION -------------------------------------------\\
             
         #Source = https://youtu.be/7VsyZLl5DRg?list=PLQVvvaa0QuDclKx-QpC9wntnURXVJqLyk
@@ -103,7 +101,10 @@ class MainCore(tk.Tk):
         self.showPage(wholeWindowContainer, page.WelcomePage)
         
         
-        
+    
+    def onFrameConfigure(self, event):
+        '''Reset the scroll region to encompass the inner frame'''
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))    
         
     
         

@@ -25,16 +25,10 @@ if __name__ == '__main__':
     # print("Hey" +  str(len(c.drones)))
     #===========================================================================
     
-    group1 = ["g1", "v11", "v12", "v13", "t11"]
-    group2 = ["g2", "v21", "v22", "v23", "t21"]
-    
-    listOfGroups = [group1, group2]
-    
-    for group in listOfGroups:
-        for entry in group:
-            print("Entry: " + entry)
-        print()
-    
+    val = 13
+    print(str(float(val/1000)))
+
+
     
     if(1==14):
         c = findMyDrone()

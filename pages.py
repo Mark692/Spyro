@@ -9,12 +9,15 @@ This module is dedicated to set up pages to display
 #from matplotlib.figure import Figure
 from tkinter import ttk  # Sort of CSS for TKinter
 import tkinter as tk  # Base graphics
+from tkinter.tix import *
 from Connection import findMyDrone
 from tkinter import StringVar, Radiobutton
 import time
 import threading
 import BaseLog as log
-
+import variablesToLog
+import watchtower
+from watchtower import flightTypes
 
 # Matplotlib graphs
 
@@ -38,10 +41,15 @@ connection.gui_scanForDrones()
 drones = connection.get_dronesList()
 selectedDrone = ""
 
+logVars = variablesToLog.dictionary
 logGroups_EntryButtons = []
 logGroups_Values = []
 
-flightPointsList = []
+flightTypes = watchtower.flightTypes
+flightVars = watchtower.flightVars
+flightPoints_EntryButtons = []
+flightPoints_Values = []
+
  
 def buttMessage(str2print):
     print(str2print)
@@ -197,6 +205,7 @@ class welcomeConnected(tk.Frame):
         #UN ALTRO BUTTON PER 
         #START LOG AND FLIGHT!
 
+
     
 class flightPoints(tk.Frame):
     '''
@@ -211,24 +220,431 @@ class flightPoints(tk.Frame):
         tk.Frame.__init__(self, root)
         label = ttk.Label(self,
                          text=self.lg_Text,
-                         font=self.LARGE_FONT0)
-        label.grid(row=0, column=0, sticky="nsew")
+                         font=self.LARGE_FONT0,
+                         justify="right")
+        label.grid(row=0, column=0, columnspan = 3, sticky="EW")
         
-        goTo_LogGroups = ttk.Button(self,
-                           text=self.txt_logGroups,
-                           command=lambda: controller.showPage(root, logGroups))
-        goTo_LogGroups.grid()
         
+        #Add the right-horizontal scrollbar
+        #Source: https://stackoverflow.com/questions/3085696/adding-a-scrollbar-to-a-group-of-widgets-in-tkinter
+        self.canvas = tk.Canvas(self, 
+                                width=1400, 
+                                height=500,
+                                borderwidth=0)
+        self.frame = tk.Frame(self.canvas, 
+                                width=1400, 
+                                height=500)
+        self.vsb = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.vsb.set)
+
+        self.vsb.grid(row = 1, rowspan = 10, sticky="NSE")
+        self.canvas.grid(row = 1, rowspan = 10, sticky="NSWE")
+        self.canvas.create_window((4,4), window=self.frame, anchor="nw", 
+                                  tags="self.frame")
+
+        self.frame.bind("<Configure>", self.onFrameConfigure)   
+        
+        
+        #Separator
+        horizontalSeparator = ttk.Label(self,
+                              text = "")
+        horizontalSeparator.grid(column = 0, columnspan = 10)
+        
+        
+        global flightPoints_Values
+        totalFlights = len(flightPoints_Values)
+        
+        if totalFlights != 0:
+            for f in range(totalFlights):
+                self.addFlightPoint(
+                                   flightID = f,
+                                   root = root, controller = controller,
+                                   flightType = flightPoints_Values[f][0],
+                                   var1d        = flightPoints_Values[f][1],
+                                   var2d        = flightPoints_Values[f][2],
+                                   var3d        = flightPoints_Values[f][3],
+                                   var4d        = flightPoints_Values[f][4],
+                                   repeat       = flightPoints_Values[f][5],
+                                   waitTime     = flightPoints_Values[f][6])
+        else: 
+            self.addFlightPoint(0, root, controller)
+        
+        self.addNewFlightButton(root, controller)
+        
+        
+    def onFrameConfigure(self, event):
+        '''
+        Reset the scroll region to encompass the inner frame
+        '''
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        
+        
+    def addFlightForm(self, flightID, root, controller, flightSelected = ""):
+        '''
+        Manage the new form to set flight parameters
+        '''
+        
+        global flightPoints_EntryButtons
+        totalRowInEachGroup = 5 #Each group has 5 rows
+        firstRowIndex = len(flightPoints_EntryButtons) * totalRowInEachGroup +2 #Newly added groups will be displayed below according to this index
+        
+        flightLabel = ttk.Label(self.frame,
+                        text = "Flight Type: ")
+        flightLabel.grid(row = firstRowIndex, column = 0, sticky="E")
+        
+        global flightTypes
+        flight_selected = tk.StringVar()
+        if flightSelected == "":
+            flight_selected.set(flightTypes[0])
+        else:
+            flight_selected.set(flightSelected)
+            
+        flightSelect = tk.OptionMenu(self.frame,
+                                   flight_selected, 
+                                   *flightTypes,
+                                   command = lambda _: self.updateAll(flightID, flight_selected.get(), root, controller)
+                                   ) #Source of the "lambda _:" https://stackoverflow.com/questions/35974203/optionmenu-command-function-requires-argument
+                                   
+
+        
+        #flightTypes[0] should be "None"
+        flightDesc = ""
+        if flight_selected.get() == flightTypes[1]: #send_setpoint
+            flightDesc = "Send a new control setpoint for roll/pitch/yaw/thrust to the copter"
+
+        elif flight_selected.get() == flightTypes[2]: #send_velocity_world_setpoint
+            flightDesc = "Send Velocity in the world frame of reference setpoint"
+            
+        elif flight_selected.get() == flightTypes[3]: #send_zdistance_setpoint
+            flightDesc = "Control mode where the height is send as an absolute setpoint"
+            
+        elif flight_selected.get() == flightTypes[4]: #send_hover_setpoint
+            flightDesc = "Control mode where the height is send as an absolute setpoint"
+            
+            
+        flightSelect.grid(row = firstRowIndex, column = 1, columnspan = 4, sticky="WE")
+        
+        self.flightDescLabel = ttk.Label(self.frame)
+        self.flightDescLabel.configure(text = flightDesc)
+        self.flightDescLabel.grid(row = firstRowIndex, column = 5, columnspan = 6, sticky = "W")
+        
+        
+        
+    def updateAll(self, flightID, flightSelected, root, controller):
+        '''
+        Called when a SELECT button changes state
+        '''
+        global flightPoints_EntryButtons
+        
+        flightPoints_EntryButtons[flightID][0] = flightSelected
+        self.saveFlightState()
+        controller.showPage(root, flightPoints)
+            
+            
+            
+    def updateDescription(self, selectedFlight):
+        '''
+        Update flight description
+        '''
+        #flightTypes[0] should be "None"
+        flightDesc = ""
+        if selectedFlight == flightTypes[1]: #send_setpoint
+            flightDesc = "Send a new control setpoint for roll/pitch/yaw/thrust to the copter"
+
+        elif selectedFlight == flightTypes[2]: #send_velocity_world_setpoint
+            flightDesc = "Send Velocity in the world frame of reference setpoint"
+            
+        elif selectedFlight == flightTypes[3]: #send_zdistance_setpoint
+            flightDesc = "Control mode where the height is send as an absolute setpoint"
+            
+        elif selectedFlight == flightTypes[4]: #send_hover_setpoint
+            flightDesc = "Control mode where the height is send as an absolute setpoint"
+           
+            
+        self.flightDescLabel.configure(text = flightDesc)
+            
+    
+    
+    def addFlightPoint(self, 
+                       flightID, root, controller,
+                       flightType = "",
+                       var1d = 0, 
+                       var2d = 0, 
+                       var3d = 0, 
+                       var4d = 0,
+                       repeat = 1, 
+                       waitTime = 10):
+        '''
+        Add the form to insert a new flight point
+        '''
+        global flightVars
+        global flightTypes
+        global flightPoints_EntryButtons
+        
+        if flightType == "":
+            flightType = flightTypes[0]
+            
+        self.addFlightForm(flightID, root, controller, flightType)
+        self.updateDescription(flightType)
+        
+        totalRowInEachGroup = 5 #Each group has 5 rows
+        firstRowIndex = len(flightPoints_EntryButtons) * totalRowInEachGroup +2 #Newly added groups will be displayed below according to this index
+        
+        
+        #Separator
+        horizontalSeparator = ttk.Label(self.frame, text = "")
+        horizontalSeparator.grid(column = 0, columnspan = 12)
+        
+
+        var1 = var2 = var3 = var4 = ["", ""]
+        
+        #flightTypes[0] should be "None"
+        if flightType == flightTypes[1]: #send_setpoint
+            var1 = flightVars[0] #["roll",     "deg"]
+            var2 = flightVars[1] #["pitch",    "deg"]
+            var3 = flightVars[2] #["yaw",      "deg"]
+            var4 = flightVars[3] #["thrust",   "[0, 65535]"]
+
+
+        if flightType == flightTypes[2]: #send_velocity_world_setpoint
+            var1 = flightVars[4] #["vx",       "m/s"]
+            var2 = flightVars[5] #["vy",       "m/s"]
+            var3 = flightVars[6] #["vz",       "m/s"]
+            var4 = flightVars[7] #["yawrate",  "deg/s"]
+            
+        if flightType == flightTypes[3]: #send_zdistance_setpoint
+            var1 = flightVars[0] #["roll",     "deg"]
+            var2 = flightVars[1] #["pitch",    "deg"]
+            var3 = flightVars[7] #["yawrate",  "deg/s"]
+            var4 = flightVars[8] #["zdistance","m"]
+
+        if flightType == flightTypes[4]: #send_hover_setpoint
+            var1 = flightVars[4] #["vx",       "m/s"]
+            var2 = flightVars[5] #["vy",       "m/s"]
+            var3 = flightVars[7] #["yawrate",  "deg/s"]
+            var4 = flightVars[8] #["zdistance","m"]
+            
+        
+        vars12RowIndex = firstRowIndex+1
+        
+        #=======================================================================
+        
+        var1Label = ttk.Label(self.frame)
+        var1Label.configure(text = var1[0] + " = ")
+        var1Label.grid(row = vars12RowIndex, column = 1, sticky="E")
+        
+        var1_Value = var1d
+        var1Entry = ttk.Entry(self.frame)
+        var1Entry.insert(0, var1_Value)
+        var1Entry.grid(row = vars12RowIndex, column = 2, sticky="WE")
+        
+        var1LabelUnit = ttk.Label(self.frame)
+        var1LabelUnit.configure(text = var1[1])
+        var1LabelUnit.grid(row = vars12RowIndex, column = 3, sticky="W")
+        
+        #=======================================================================
+        
+        var2Label = ttk.Label(self.frame)
+        var2Label.configure(text = "            " + var2[0] + " = ")
+        var2Label.grid(row = vars12RowIndex, column = 5, sticky="E")
+        
+        var2_Value = var2d
+        var2Entry = ttk.Entry(self.frame)
+        var2Entry.insert(0, var2_Value)
+        var2Entry.grid(row = vars12RowIndex, column = 6, sticky="WE")
+        
+        var2LabelUnit = ttk.Label(self.frame)
+        var2LabelUnit.configure(text = var2[1])
+        var2LabelUnit.grid(row = vars12RowIndex, column = 7, sticky="W")
+        
+        #=======================================================================
+        
+        repeatLabel = ttk.Label(self.frame)
+        repeatLabel.configure(text = "        Repeat: ")
+        repeatLabel.grid(row = vars12RowIndex, column = 9, sticky="E")
+        
+        repeat_Value = repeat
+        repeatEntry = ttk.Entry(self.frame)
+        repeatEntry.insert(0, repeat_Value)
+        repeatEntry.grid(row = vars12RowIndex, column = 10, sticky="WE")
+        
+        repeatLabelUnit = ttk.Label(self.frame)
+        repeatLabelUnit.configure(text = "times")
+        repeatLabelUnit.grid(row = vars12RowIndex, column = 11, sticky="W")
+        
+        
+        #=======================================================================
+        # 
+        #=======================================================================
+        
+        vars34RowIndex = vars12RowIndex+2 
+        
+        var3Label = ttk.Label(self.frame)
+        var3Label.configure(text = var3[0] + " = ")
+        var3Label.grid(row = vars34RowIndex, column = 1, sticky="E")
+        
+        var3_Value = var3d
+        var3Entry = ttk.Entry(self.frame)
+        var3Entry.insert(0, var3_Value)
+        var3Entry.grid(row = vars34RowIndex, column = 2, sticky="WE")
+        
+        var3LabelUnit = ttk.Label(self.frame)
+        var3LabelUnit.configure(text = var3[1])
+        var3LabelUnit.grid(row = vars34RowIndex, column = 3, sticky="W")
+        
+        #=======================================================================
+        
+        var4Label = ttk.Label(self.frame)
+        var4Label.configure(text = "            " + var4[0] + " = ")
+        var4Label.grid(row = vars34RowIndex, column = 5, sticky="E")
+        
+        var4_Value = var4d
+        var4Entry = ttk.Entry(self.frame)
+        var4Entry.insert(0, var4_Value)
+        var4Entry.grid(row = vars34RowIndex, column = 6, sticky="WE")
+        
+        var4LabelUnit = ttk.Label(self.frame)
+        var4LabelUnit.configure(text = var4[1])
+        var4LabelUnit.grid(row = vars34RowIndex, column = 7, sticky="W")
+        
+        #=======================================================================
+        
+        waitLabel = ttk.Label(self.frame)
+        waitLabel.configure(text = "        After each repetition, wait: ")
+        waitLabel.grid(row = vars34RowIndex, column = 9, sticky="E")
+        
+        wait_Value = waitTime
+        waitEntry = ttk.Entry(self.frame)
+        waitEntry.insert(0, wait_Value)
+        waitEntry.grid(row = vars34RowIndex, column = 10, sticky="WE")
+        
+        waitLabelUnit = ttk.Label(self.frame)
+        waitLabelUnit.configure(text = "milliseconds")
+        waitLabelUnit.grid(row = vars34RowIndex, column = 11, sticky="W")
+    
+    
+    
+        horizontalSeparator2 = ttk.Label(self.frame, text = "")
+        horizontalSeparator2.grid(row = vars34RowIndex+1, column = 0, columnspan = 12)
+        
+        horizontalSeparator3 = ttk.Label(self.frame, text = "")
+        horizontalSeparator3.grid(row = vars34RowIndex+2, column = 0, columnspan = 12)
+        
+        #Add the current entries to the global list of flight points
+        flightPoints_EntryButtons.append(
+            [
+                flightType, 
+                var1Entry, var2Entry, var3Entry, var4Entry, 
+                repeatEntry, waitEntry
+             ])
+        
+        
+        #ADD A RESET(id)  BUTTON?
+        #ADD A DELETE(id) BUTTON?
+        
+        
+    
+    def validateIntEntry(self, value):
+        '''
+        Validate user input data
+        '''
+        try:
+            if int(value) < 0:
+                return "0"
+            else:
+                return value
+        except:
+            return "0"
+            
+    
+    def validateThrust(self, value):
+        '''
+        Validate user input data for the thrust
+        It can range in [0, 65535]
+        '''
+        value = self.validateIntEntry(value)
+        try:
+            if int(value) > 65535:
+                return "65535"
+            else:
+                return value
+        except:
+            return "65535"
+        
+    
+        
+    def addNewFlightButton(self, root, controller):
+        '''
+        Button calling a specific function to save the current flight points and add a new one
+        '''
+        global flightPoints_Values
+        rowButton = len(flightPoints_Values) * 6 + 8
+        addNewGroup = ttk.Button(self.frame,
+                                 text = "Add a new flight point!",
+                                 command = lambda: self.addNewFlightHere(root, controller))
+        addNewGroup.grid(row = rowButton, column = 3, columnspan = 6)
+        
+        
+    def addNewFlightHere(self, root, controller):
+        '''
+        Enable to save the current groups and add a new one
+        '''
+        global flightPoints_EntryButtons
+        self.addFlightPoint(len(flightPoints_EntryButtons), root, controller)
+        self.saveFlightState()
+        controller.showPage(root, flightPoints)
+
+        
+    def saveFlightState(self):
+        '''
+        Save the current values of flightPoints_EntryButtons into the global list flightPoints_Values
+        New instantiations of "addFlightForm" can thus be made by looking at flightPoints_Values 
+            so to set the user-selected values back to the form
+        Source: https://snakify.org/en/lessons/two_dimensional_lists_arrays/
+        '''
+        global flightTypes
+        global flightPoints_EntryButtons
+        global flightPoints_Values
+        flightPoints_Values = []
+        
+        for id_group in range(len(flightPoints_EntryButtons)):
+            supportList = []
+            flightType = flightPoints_EntryButtons[id_group][0]
+            
+            for id_entry in range(len(flightPoints_EntryButtons[id_group])):
+                if id_entry == 0: #This is the flightType
+                    value = flightPoints_EntryButtons[id_group][id_entry] #It will be a string
+                    
+                elif id_entry == 4: #This is the 4th var (thrust, yawrate, zdistance)
+                    if flightType == flightTypes[1]: #In case flightType == "send_setpoint
+                        value = self.validateThrust(value)
+                        
+                else: #In every other case we have the normal variables to validate
+                    value = flightPoints_EntryButtons[id_group][id_entry].get()
+                    value = self.validateIntEntry(value)
+                    
+                supportList.append(value)
+            flightPoints_Values.append(supportList)
+            
+        flightPoints_EntryButtons = []
     
     
 class logGroups(tk.Frame):
     '''
     tk.Frame - Frame used to host the log groups
+    
+    ToDo List:
+     - Functions to implement: 
+                                 - Delete_ThisGroup(group_ID)
+                                 - Save_ThisGroupToFile(g, v1, v2, v3, v4, v5, v6, t)
+                                 - Load_GroupsFromFile()
+                                 - Save_AllGroupsToFile()
+     - Improve the logging variable choice into 2 OptionMenu: one to choose the variable's group, another to choose the variable to log
+     - Improve the overall time and space performances
     '''
     
     lg_Text = "Your logging groups"
     LARGE_FONT0 = ("Verdana", 12)
-    txt_FlightPoints = "Set Flight"
     
     def __init__(self, root, controller):
         tk.Frame.__init__(self, root)
@@ -236,7 +652,27 @@ class logGroups(tk.Frame):
                          text=self.lg_Text,
                          font=self.LARGE_FONT0,
                          justify="right")
-        label.grid(row=0, column=0, columnspan = 10, sticky="EW")
+        label.grid(row=0, column=0, columnspan = 3, sticky="EW")
+        
+        
+        #Add the right-horizontal scrollbar
+        #Source: https://stackoverflow.com/questions/3085696/adding-a-scrollbar-to-a-group-of-widgets-in-tkinter
+        self.canvas = tk.Canvas(self, 
+                                width=1100, 
+                                height=500,
+                                borderwidth=0)
+        self.frame = tk.Frame(self.canvas, 
+                                width=1100, 
+                                height=500)
+        self.vsb = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.vsb.set)
+
+        self.vsb.grid(row = 1, rowspan = 10, sticky="NSE")
+        self.canvas.grid(row = 1, rowspan = 10, sticky="NSWE")
+        self.canvas.create_window((4,4), window=self.frame, anchor="nw", 
+                                  tags="self.frame")
+
+        self.frame.bind("<Configure>", self.onFrameConfigure)   
         
         
         #Separator
@@ -263,47 +699,52 @@ class logGroups(tk.Frame):
         else:
             self.addLogGroup(totalGroups)
         
-        #=======================================================================
-        # horizontalSeparator2 = ttk.Label(self,
-        #                       text = "")
-        # horizontalSeparator2.grid(column = 0, columnspan = 10)
-        #=======================================================================
-        
         self.addNewGroupButton(root, controller)
         
         
-    def addLogGroup(self, idGroup, name = "", var1d = "", var2d = "", var3d = "", var4d = "", var5d = "", var6d = "", time = 10): #FIX IT TO BE A DEFAULT-PARAMS FUNCTION
+        
+    def onFrameConfigure(self, event):
+        '''
+        Reset the scroll region to encompass the inner frame
+        '''
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        
+        
+        
+    def addLogGroup(self, 
+    				idGroup, name = "", 
+					var1d = "", var2d = "", var3d = "", var4d = "", var5d = "", var6d = "", 
+					time = 10):
         global logGroups_EntryButtons
         groupID = idGroup +1
         totalRowInEachGroup = 6 #Each group has 6 rows
         firstRowIndex = len(logGroups_EntryButtons) * totalRowInEachGroup +2 #Newly added groups will be displayed below according to this index
         
-        #Group
+        #Group Form
         groupRowIndex = firstRowIndex +1
         if name == "" or name == None:
             groupText = "Group #" + str(groupID)
         else:
             groupText = name
-        groupName = ttk.Entry(self)
+        groupName = ttk.Entry(self.frame)
         groupName.insert(0, groupText)
         groupName.grid(row = groupRowIndex, column = 0, columnspan = 2, sticky="EW")
         
         
         #Separator
-        horizontalSeparator = ttk.Label(self,
-                              text = "")
+        horizontalSeparator = ttk.Label(self.frame, text = "")
         horizontalSeparator.grid(row = groupRowIndex+1, column = 0, columnspan = 10)
         
         
         #Log period
         logRowIndex = groupRowIndex +2
-        logPeriod = ttk.Label(self,
+        logPeriod = ttk.Label(self.frame,
                               text = "Log period: ")
         logPeriod.grid(row = logRowIndex, column = 0, sticky="E")
         
-        logEntry = ttk.Entry(self)
+        logEntry = ttk.Entry(self.frame)
         try:
-            if int(time) <= 10:
+            if int(time) < 10:
                 basePeriod = "10"
             else:
                 basePeriod = time
@@ -313,114 +754,112 @@ class logGroups(tk.Frame):
         logEntry.insert(0, basePeriod)
         logEntry.grid(row = logRowIndex, column = 1)
         
-        ms = ttk.Label(self,
+        ms = ttk.Label(self.frame,
                               text = "ms")
         ms.grid(row = logRowIndex, column = 2, sticky="W")
         
         
         #Vars 1, 2 and 3
-        loggableVariables = ["None", "stabilizer.roll", "stabilizer.yaw", "stabilizer.pitch", "estimate.x", "estimate.y"]
-        varDefault = loggableVariables[0][0]
+        global logVars
+        varDefault = logVars[0]
         
         vars123RowIndex = groupRowIndex #Horizontally aligned with the Group Name
-        var1Label = ttk.Label(self,
-                        text = "    Var #1: ")
-        var1Label.grid(row = vars123RowIndex, column = 3)
+        var1Label = ttk.Label(self.frame,
+                        text = "        Var #1: ")
+        var1Label.grid(row = vars123RowIndex, column = 3, sticky="E")
         
         var1_Value = tk.StringVar()
         if var1d == "":
             var1_Value.set(varDefault)
         else:
             var1_Value.set(var1d)
-        var1Entry = ttk.OptionMenu(self,
+        var1Entry = tk.OptionMenu(self.frame,
                                    var1_Value, 
-                                   loggableVariables)
-        var1Entry.grid(row = vars123RowIndex, column = 4, columnspan = 1)
+                                   *logVars) #http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/optionmenu.html
+        var1Entry.grid(row = vars123RowIndex, column = 4, columnspan = 1, sticky="WE")
         
 
-        var2Label = ttk.Label(self,
-                        text = "    Var #2: ")
-        var2Label.grid(row = vars123RowIndex, column = 6)
+        var2Label = ttk.Label(self.frame,
+                        text = "        Var #2: ")
+        var2Label.grid(row = vars123RowIndex, column = 6, sticky="E")
         
         var2_Value = tk.StringVar()
         if var2d == "":
             var2_Value.set(varDefault)
         else:
             var2_Value.set(var2d)
-        var2Entry = ttk.OptionMenu(self,
+        var2Entry = tk.OptionMenu(self.frame,
                                    var2_Value, 
-                                   loggableVariables)
-        var2Entry.grid(row = vars123RowIndex, column = 7, columnspan = 1)
+                                   *logVars)
+        var2Entry.grid(row = vars123RowIndex, column = 7, columnspan = 1, sticky="WE")
         
         
-        var3 = ttk.Label(self,
-                        text = "    Var #3: ")
-        var3.grid(row = vars123RowIndex, column = 9)
+        var3 = ttk.Label(self.frame,
+                        text = "        Var #3: ")
+        var3.grid(row = vars123RowIndex, column = 9, sticky="E")
         
         var3_Value = tk.StringVar()
         if var3d == "":
             var3_Value.set(varDefault)
         else:
             var3_Value.set(var3d)
-        var3Entry = ttk.OptionMenu(self,
+        var3Entry = tk.OptionMenu(self.frame,
                                    var3_Value, 
-                                   loggableVariables)
-        var3Entry.grid(row = vars123RowIndex, column = 10, columnspan = 1)
+                                   *logVars)
+        var3Entry.grid(row = vars123RowIndex, column = 10, columnspan = 1, sticky="WE")
         
         
         #Vars 4, 5, and 6
         vars456RowIndex = logRowIndex #Horizontally aligned with the Log Period
-        var4 = ttk.Label(self,
-                        text = "    Var #4: ")
-        var4.grid(row = vars456RowIndex, column = 3)
+        var4 = ttk.Label(self.frame,
+                        text = "        Var #4: ")
+        var4.grid(row = vars456RowIndex, column = 3, sticky="E")
         
         var4_Value = tk.StringVar()
         if var4d == "":
             var4_Value.set(varDefault)
         else:
             var4_Value.set(var4d)
-        var4Entry = ttk.OptionMenu(self,
+        var4Entry = tk.OptionMenu(self.frame,
                                    var4_Value, 
-                                   loggableVariables)
-        var4Entry.grid(row = vars456RowIndex, column = 4, columnspan = 1)
+                                   *logVars)
+        var4Entry.grid(row = vars456RowIndex, column = 4, columnspan = 1, sticky="WE")
         
         
-        var5 = ttk.Label(self,
-                        text = "    Var #5: ")
-        var5.grid(row = vars456RowIndex, column = 6)
+        var5 = ttk.Label(self.frame,
+                        text = "        Var #5: ")
+        var5.grid(row = vars456RowIndex, column = 6, sticky="E")
         
         var5_Value = tk.StringVar()
         if var5d == "":
             var5_Value.set(varDefault)
         else:
             var5_Value.set(var5d)
-        var5Entry = ttk.OptionMenu(self,
+        var5Entry = tk.OptionMenu(self.frame,
                                    var5_Value, 
-                                   loggableVariables)
-        var5Entry.grid(row = vars456RowIndex, column = 7, columnspan = 1)
+                                   *logVars)
+        var5Entry.grid(row = vars456RowIndex, column = 7, columnspan = 1, sticky="WE")
         
         
-        var6 = ttk.Label(self,
-                        text = "    Var #6: ")
-        var6.grid(row = vars456RowIndex, column = 9)
+        var6 = ttk.Label(self.frame,
+                        text = "        Var #6: ")
+        var6.grid(row = vars456RowIndex, column = 9, sticky="E")
         
         var6_Value = tk.StringVar()
         if var6d == "":
             var6_Value.set(varDefault)
         else:
             var6_Value.set(var6d)
-        var6Entry = ttk.OptionMenu(self,
+        var6Entry = tk.OptionMenu(self.frame,
                                    var6_Value, 
-                                   loggableVariables)
-        var6Entry.grid(row = vars456RowIndex, column = 10, columnspan = 1)
+                                   *logVars)
+        var6Entry.grid(row = vars456RowIndex, column = 10, columnspan = 1, sticky="WE")
         
         
-        horizontalSeparator2 = ttk.Label(self,
-                              text = "")
+        horizontalSeparator2 = ttk.Label(self.frame, text = "")
         horizontalSeparator2.grid(column = 0, columnspan = 10)
         
-        horizontalSeparator3 = ttk.Label(self,
-                              text = "")
+        horizontalSeparator3 = ttk.Label(self.frame, text = "")
         horizontalSeparator3.grid(column = 0, columnspan = 10)
         
         #Add the current entries to the global list of Logging Groups
@@ -430,16 +869,23 @@ class logGroups(tk.Frame):
         #ADD A RESET(id)  BUTTON?
         #ADD A DELETE(id) BUTTON?
         
-    def addNewGroupButton(self, root, controller):
         
-        addNewGroup = ttk.Button(self,
+        
+        
+    def addNewGroupButton(self, root, controller):
+        '''
+        Button calling a specific function to save the current log groups and add a new one
+        '''
+        addNewGroup = ttk.Button(self.frame,
                                  text = "Add a new group of variables to log!",
                                  command = lambda: self.addNewGroupHere(root, controller))
-        addNewGroup.grid(column = 4, columnspan = 3)
+        addNewGroup.grid(column = 3, columnspan = 6)
         
         
     def addNewGroupHere(self, root, controller):
-        
+        '''
+        Enable to save the current groups and add a new one
+        '''
         global logGroups_EntryButtons
         
         self.addLogGroup(len(logGroups_EntryButtons))
@@ -460,49 +906,15 @@ class logGroups(tk.Frame):
         for id_group in range(len(logGroups_EntryButtons)):
             appendThis = []
             for id_entry in range(len(logGroups_EntryButtons[id_group])):
-                appendThis.append(logGroups_EntryButtons[id_group][id_entry].get())
+                value = logGroups_EntryButtons[id_group][id_entry].get()
+                if value == "('None',)": #Don't ask. Dunno why it computes the initial "None" in this way, but it does
+                    value = "None"
+                appendThis.append(value)
             logGroups_Values.append(appendThis)
             
         logGroups_EntryButtons = []
-                
-        
-    def addDefaultGroup(self):
-        None
-        
-    def loadLogGroups(self):
-        None
         
         
-        #=======================================================================
-        # goTo_FlightPoints = tk.Button(self,
-        #                    text=self.txt_FlightPoints,
-        #                    command=lambda: controller.showPage(root, flightPoints))
-        # goTo_FlightPoints.grid()
-        #=======================================================================
-        
-    
-class PageOne(tk.Frame):
-    '''
-    tk.Frame - Frame used to host the WelcomePage
-    '''
-
-    page1Label = "Stupid lonely page"
-    def __init__(self, root, controller):
-        tk.Frame.__init__(self, root)
-        label = ttk.Label(self,
-                         text=self.page1Label,
-                         font=LARGE_FONT1)
-        label.grid(row=0, column=0, sticky="nsew")
-        
-        button11 = ttk.Button(self,
-                           text=welcomePageButton,
-                           command=lambda: controller.showPage(root, WelcomePage))
-                            # command - used to pass functions
-                            # lambda - creates a quick throwaway function
-        button11.grid()
-        
-           
-   
 """  
    
    

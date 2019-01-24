@@ -19,30 +19,13 @@ l4funcName  = "add_variable_line164"
 #self._lg_stab.add_variable('stabilizer.roll', 'float')
 
 
-#===============================================================================
-# STABILIZER_GROUP      = 'Stabilizer'
-# stabilizer_time       = 10 #Logging period in ms
-# STABILIZER_ROLL       = ['stabilizer.roll',     'float']
-# STABILIZER_PITCH      = ['stabilizer.pitch',    'float']
-# STABILIZER_YAW        = ['stabilizer.yaw',      'float']
-# STABILIZER_THRUST     = ['stabilizer.thrust',   'int'  ]
-# 
-# 
-# #Esempio: Inserimento variabili nel log
-# log = LogConfig(name = STABILIZER_GROUP, period_in_ms = stabilizer_time)
-# log.add_variable(STABILIZER_ROLL[0], STABILIZER_ROLL[1])
-#===============================================================================
+stabilizer  = ["stabilizer.roll", "stabilizer.pitch", "stabilizer.yaw"]
+estimate    = ["estimate.x", "estimate.y", "estimate.z"]
+ 
+#Add here all the possible logging groups available for the drone
+dictionary = [*stabilizer, *estimate]
 
-
-
-#===============================================================================
-# stabilizer  = ["stabilizer"]["roll", "pitch", "yaw"]
-# estimate    = ["estimate"]["x", "y", "z"]
-# 
-# #Add here all the possible logging groups available for the drone
-# dictionary = [stabilizer, estimate]
-#===============================================================================
-
+dictionary.insert(0, ["None"]) #Initial default value to display
 
 
 class cluster():
