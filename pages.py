@@ -15,9 +15,11 @@ from tkinter import StringVar, Radiobutton
 import time
 import threading
 import BaseLog as log
+from variablesToLog import cluster
 import variablesToLog
 import watchtower
 from watchtower import flightTypes
+from numpy.lib.function_base import select
 
 # Matplotlib graphs
 
@@ -77,21 +79,14 @@ class WelcomePage(tk.Frame):
                            command=lambda: controller.showPage(root, droneScan))
         
         buttonSCAN.grid()
-        
-        
-    def findDrones(self, root, controller):
-        '''
-        Scan the radio channel looking for drones
-        '''
-        drones = findMyDrone()
-        self.drones = drones.get_dronesList()
-        #print("Hooray!")
-        controller.showPage(root, droneScan)
-        
+    
         
 class droneScan(tk.Frame):
     '''
     tk.Frame - Frame used to host the drones available at the moment
+    ToDo: This class will block any execution until a drone is correctly found (not necessarly connected)
+            You may want to do some multi-threading in order to make things work smoother 
+            Patch 1 - I've put a timeout so to hide the problem
     '''
     
     lg_Text = "Choose a drone to connect to"
@@ -115,28 +110,35 @@ class droneScan(tk.Frame):
                      text=lookingForDrones_text,
                      font=self.LARGE_FONT0)
         label.grid(row=0, column=0, sticky="nsew")
-   
-
-        #=======================================================================
-        # global elapsedTime
-        # print(elapsedTime)
-        # if len(drones) == 0:
-        #     time.sleep(1)
-        #     elapsedTime += 1
-        #     print(elapsedTime)
-        #     if elapsedTime > 2:
-        #         drones = ["Ahahahaah funziona?!"]
-        #     else:
-        #         droneScan(root, controller) #Sadly I have to call this class again in order to load and display it
-        #=======================================================================
        
         global elapsedTime
-        while len(drones) == 0:
+        elapsedTime = 0
+        timeout = 3 #seconds
+        while len(drones) == 0 and elapsedTime < timeout:
             time.sleep(1)
+            elapsedTime += 1
             connection.gui_scanForDrones()
             drones = connection.get_dronesList()
         
         
+        if len(drones) == 0 and elapsedTime >= timeout:
+
+            ttk.Label(self, text="").grid()
+            
+            immafailure = "Nothing, I'm truly sorry :("
+            label = ttk.Label(self,
+                         text=immafailure,
+                         font=("Verdana", 12))
+            label.grid()
+            
+            ttk.Label(self, text="").grid()
+        
+            reScan = ttk.Button(self,
+                               text="Scan again on the radio channel!",
+                               command=lambda: controller.showPage(root, droneScan))
+            reScan.grid()
+            
+            
         if len(drones) != 0:
             self.selected = tk.StringVar()
             self.selected.set(drones[0][0]) #Set as "selected" the first drone found
@@ -204,8 +206,29 @@ class welcomeConnected(tk.Frame):
 
         #UN ALTRO BUTTON PER 
         #START LOG AND FLIGHT!
+        
 
-
+    def startLogging(self):
+        global logGroups_Values
+        global toLog
+        global selectedDrone
+        if len(logGroups_Values) != 0:
+            
+            supportList = []
+            for group in logGroups_Values:
+                for i in range(6):
+                    if group[i+1] != "None":
+                        supportList.append(group[i+1])
+                if len(supportList) != 0:
+                    groupName = group[0]
+                    groupTime = group[7]
+                    c = cluster(groupName, groupTime, supportList)
+                    toLog.append(c.getLogConfiguration())
+                    
+        if len(toLog) != 0:
+            log(selectedDrone, toLog)
+            
+            
     
 class flightPoints(tk.Frame):
     '''
@@ -228,11 +251,11 @@ class flightPoints(tk.Frame):
         #Add the right-horizontal scrollbar
         #Source: https://stackoverflow.com/questions/3085696/adding-a-scrollbar-to-a-group-of-widgets-in-tkinter
         self.canvas = tk.Canvas(self, 
-                                width=1400, 
+                                width=1300, 
                                 height=500,
                                 borderwidth=0)
         self.frame = tk.Frame(self.canvas, 
-                                width=1400, 
+                                width=1300, 
                                 height=500)
         self.vsb = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=self.vsb.set)
@@ -658,11 +681,11 @@ class logGroups(tk.Frame):
         #Add the right-horizontal scrollbar
         #Source: https://stackoverflow.com/questions/3085696/adding-a-scrollbar-to-a-group-of-widgets-in-tkinter
         self.canvas = tk.Canvas(self, 
-                                width=1100, 
+                                width=1300, 
                                 height=500,
                                 borderwidth=0)
         self.frame = tk.Frame(self.canvas, 
-                                width=1100, 
+                                width=1300, 
                                 height=500)
         self.vsb = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=self.vsb.set)
@@ -914,97 +937,3 @@ class logGroups(tk.Frame):
             
         logGroups_EntryButtons = []
         
-        
-"""  
-   
-   
-# Check for this code under "class PageThree(tk.Frame):"
-# https://pythonprogramming.net/embedding-live-matplotlib-graph-tkinter-gui/?completed=/how-to-embed-matplotlib-graph-tkinter-gui/        
-class LiveGraph(tk.Frame):
-    '''
-    tk.Frame - Frame used to host the WelcomePage
-    '''
-
-    def __init__(self, root, controller):
-        tk.Frame.__init__(self, root)
-        label = ttk.Label(self,
-                         text=liveGraphLabel,
-                         font=LARGE_FONT2)
-        label.pack(pady=10, padx=10)
-        
-        button12 = ttk.Button(self,
-                           text=welcomePageButton,
-                           command=lambda: controller.show_frame(WelcomePage))
-                            # command - used to pass functions
-                            # lambda - creates a quick throwaway function
-        button12.pack()
-        
-        button22 = ttk.Button(self,
-                           text=page1Button,
-                           command=lambda: controller.show_frame(PageOne))
-        button22.pack()
-        
-        button2g = ttk.Button(self,
-                           text=staticGraphButton,
-                           command=lambda: controller.show_frame(StaticGraph))
-        button2g.pack()
-        
-        canvas = FigureCanvasTkAgg(anime.myFigure, self)
-        canvas.show()
-        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-
-        toolbar = NavigationToolbar2TkAgg(canvas, self)
-        toolbar.update()
-        canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-    
-    
-# Created for https://pythonprogramming.net/how-to-embed-matplotlib-liveGraph-tkinter-gui/
-# Created for https://pythonprogramming.net/how-to-embed-matplotlib-graph-tkinter-gui/
-class StaticGraph(tk.Frame):
-    '''
-    tk.Frame - Frame used to host the WelcomePage
-    '''
-
-    def __init__(self, root, controller):
-        tk.Frame.__init__(self, root)
-        label = ttk.Label(self,
-                         text=staticGraphLabel,
-                         font=LARGE_FONTg)
-        label.pack(pady=10, padx=10)
-        
-        button1g = ttk.Button(self,
-                           text=welcomePageButton,
-                           command=lambda: controller.show_frame(WelcomePage))
-                            # command - used to pass functions
-                            # lambda - creates a quick throwaway function
-        button1g.pack()
-        
-        button1 = ttk.Button(self,
-                           text=page1Button,
-                           command=lambda: controller.show_frame(PageOne))
-                            # command - used to pass functions
-                            # lambda - creates a quick throwaway function
-        button1.pack()
-        
-        button2 = ttk.Button(self,
-                           text=liveGraphButton,
-                           command=lambda: controller.show_frame(LiveGraph))
-        button2.pack()
-        
-        f = Figure(figsize=(5, 5), dpi=100)
-        a = f.add_subplot(111)  # f.add_subplot(ijk): i-th plot, j rows, k columns
-        
-        x = [1, 2, 3, 4, 5, 6, 7, 8]
-        y = [5, 6, 1, 3, 8, 9, 3, 5]   
-        a.plot(x, y)
-        # a.plot([1,2,3,4,5,6,7,8],[5,6,1,3,8,9,3,5])
-            
-        canvas = FigureCanvasTkAgg(f, self)
-        canvas.show()
-        canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-    
-        toolbar = NavigationToolbar2TkAgg(canvas, self)
-        toolbar.update()
-        canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)    
-        
-"""

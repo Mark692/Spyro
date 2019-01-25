@@ -25,8 +25,8 @@ class LoggingExample:
     """
 
     logGroup = []
-
-    def __init__(self, droneLink):
+    
+    def __init__(self, droneLink, toLog = []):
         """
         Initialize and run the example with the specified droneLink 
         """
@@ -34,9 +34,13 @@ class LoggingExample:
         if(droneLink != ""):
             self._cf = Crazyflie(rw_cache='./cache')
             
-            self.addNewLogGroup("Stime di Stato", 50, "stateEstimate.x", "stateEstimate.y", "stateEstimate.z")
-            self.addNewLogGroup("Coordinate", 10, "gps.lat", "gps.lon")
+            #===================================================================
+            # self.addNewLogGroup("Stime di Stato", 50, "")
+            # self.addNewLogGroup("Coordinate", 10, "gps.lat", "gps.lon")
+            #===================================================================
             #self.addNewLogGroup("Pressione", 500,"baro.pressure")
+            self.logGroup = toLog
+            
             
             # Connect some callbacks from the Crazyflie API
             self._cf.connected.add_callback(self._connected)
@@ -53,9 +57,11 @@ class LoggingExample:
             
             #self.flySync(droneLink)
             
-        else:
-            print("No drone provided. Going back to scan the radio channel!\n")
-            return Connection.findMyDrone()
+        #=======================================================================
+        # else:
+        #     print("No drone provided. Going back to scan the radio channel!\n")
+        #     return Connection.findMyDrone()
+        #=======================================================================
         
 
     def addNewLogGroup(self, groupName, loggingPeriod, *args):

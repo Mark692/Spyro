@@ -34,7 +34,7 @@ class cluster():
     '''
     
     groupName = ""
-    groupBaseName = "Group "
+    groupBaseName = "Group #"
     groupCounter = 0
     cf = None
     vars2log = None
@@ -45,31 +45,27 @@ class cluster():
     MIN_LOGGING_PERIOD = 10 #minimum time (in milliseconds) for each log
     groupLoggingPeriod = MIN_LOGGING_PERIOD
     
-    def __init__(self, crazyFlieOBJ, groupName, groupLoggingPeriod, *args):
+    def __init__(self, groupName, groupLoggingPeriod, *args):
         '''
         Add new variables to log and validate user input
         
         crazyFlieOBJ          = class Crazyflie Found at: cflib.crazyflie.__init__ representing the actual drone
         groupName             = name you want to give to this log group of variables
         groupLoggingPeriod    = time (in milliseconds) for the log
-        *args                 = variables you wish to log
+        *args                 = LIST of variables you wish to log
         '''
         
-        #Must provide a crazyFlie object in order to get things to work
-        if(crazyFlieOBJ != None):
+        #Only proceed if submitted at least 1 variable to log
+        if(len(args) != 0):
+            self.vars2log = args
+            #self.checkArgs()
             
-            #Only proceed if submitted at least 1 variable to log
-            if(len(args) != 0):
-                self.cf = crazyFlieOBJ
-                self.vars2log = args
-                #self.checkArgs()
-                
-                self.validateInput(groupName, groupLoggingPeriod)
-                self.addToLog()
-            else:
-                print("No variables provided! Impossible to continue")
-        else:
-            print("No CrazyFlie object provided! Impossible to continue")
+            self.validateInput(groupName, groupLoggingPeriod)
+            self.addToLog()
+        #=======================================================================
+        # else:
+        #     print("No variables provided! Impossible to continue")
+        #=======================================================================
          
        
             
@@ -90,9 +86,12 @@ class cluster():
         #print(self.groupName)
             
         #Validate LoggingPeriod
-        if(groupLoggingPeriod <= self.MIN_LOGGING_PERIOD):
-            self.groupLoggingPeriod = self.MIN_LOGGING_PERIOD
-        else:
+        try:
+            if(groupLoggingPeriod <= self.MIN_LOGGING_PERIOD):
+                self.groupLoggingPeriod = self.MIN_LOGGING_PERIOD
+            else:
+                self.groupLoggingPeriod = groupLoggingPeriod
+        except:
             self.groupLoggingPeriod = groupLoggingPeriod
         #print(self.groupLoggingPeriod)
         
