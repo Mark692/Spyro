@@ -8,6 +8,7 @@ from Connection import findMyDrone
 import BaseLog as log
 #import problemiRiscontrati
 from variablesToLog import cluster as clusterLog
+import time
 
 if __name__ == '__main__':
 
@@ -25,8 +26,9 @@ if __name__ == '__main__':
     # print("Hey" +  str(len(c.drones)))
     #===========================================================================
     
-    val = 13
-    print(str(float(val/1000)))
+    while True:
+        print("Fire!")
+        time.sleep(1500/1000)
 
 
     

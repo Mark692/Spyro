@@ -13,6 +13,9 @@ from cflib.crazyflie import Crazyflie
 from threading import Timer
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
+#from LogData import Log
+
+
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
@@ -25,6 +28,7 @@ class LoggingExample:
     """
 
     logGroup = []
+    log = None
     
     def __init__(self, droneLink, toLog = []):
         """
@@ -78,27 +82,39 @@ class LoggingExample:
         has been connected and the TOCs have been downloaded."""
         print('Connected to %s' % link_uri)
         
-        for logGroup in self.logGroup:
-        
+        for addMe in self.logGroup:
+            
             # Adding the configuration cannot be done until a Crazyflie is
             # connected, since we need to check that the variables we
             # would like to log are in the TOC.
             try:
-                self._cf.log.add_config(logGroup)
+                self._cf.log.add_config(addMe)
     
                 # This callback will receive the data
-                logGroup.data_received_cb.add_callback(self._stab_log_data)
-    
+                
+                title = addMe.name
+                gotError = True
+                while gotError:
+                    try:
+                        self.log = open("./Logs/" + str(time.time()) + " - " + title, 'x')
+                        gotError = False
+                    except:
+                        title += "_"
+                        
+                        
+                addMe.data_received_cb.add_callback(self._stab_log_data)
+
                 # This callback will be called on errors
-                logGroup.error_cb.add_callback(self._stab_log_error)
+                addMe.error_cb.add_callback(self._stab_log_error)
     
                 # Start the logging
-                logGroup.start()
+                addMe.start()
             except KeyError as e:
                 print('Could not start log configuration,'
                       '{} not found in TOC'.format(str(e)))
+                #self.log.closeLog()
             except AttributeError:
-                print('Could not add Stabilizer to logCluster, bad configuration.')
+                print('Could not add ' + addMe.name + ' to logCluster, bad configuration.')
                     
                 
         
@@ -106,13 +122,15 @@ class LoggingExample:
     def _stab_log_error(self, logconf, msg):
         """Callback from the log API when an error occurs"""
         print('Error when logging %s: %s' % (logconf.name, msg))
+        #self.log.closeLog()
         
         
 
     def _stab_log_data(self, timestamp, data, logconf):
         """Callback froma the log API when data arrives"""
-        print('[%d][%s]: %s' % (timestamp, logconf.name, data))
         
+        self.log.write('[%d][%s]: %s' % (timestamp, logconf.name, data) + "\n")
+        print('[%d][%s]: %s' % (timestamp, logconf.name, data))
 
 
     def _connection_failed(self, link_uri, msg):
@@ -120,6 +138,7 @@ class LoggingExample:
         at the speficied address)"""
         print('Connection to %s failed: %s' % (link_uri, msg))
         self.is_connected = False
+        self.log.closeLog()
         
         
 
@@ -127,6 +146,7 @@ class LoggingExample:
         """Callback when disconnected after a connection has been made (i.e
         Crazyflie moves out of range)"""
         print('Connection to %s lost: %s' % (link_uri, msg))
+        self.log.closeLog()
 
 
 
@@ -134,6 +154,7 @@ class LoggingExample:
         """Callback when the Crazyflie is disconnected (called in all cases)"""
         print('Disconnected from %s' % link_uri)
         self.is_connected = False
+        self.log.closeLog()
         
 
 
@@ -142,6 +163,7 @@ class LoggingExample:
         Disconnect the drone
         '''
         self.drone.close_link()
+        self.log.closeLog()
         
         
         

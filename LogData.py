@@ -29,6 +29,17 @@ class Log():
     #Sets the Header
     LOG_HEADER = ""
     
+        
+    def __init__(self, *args, **kwargs):
+        '''
+        Constructor
+        '''
+        #self.sanitizeLogPath(kwargs['path'])
+        self.makeDirectory()
+        
+        self.createNewFile()
+        #self.writeNewLog()
+        
     
     def makeDirectory(self):
         '''
@@ -44,9 +55,12 @@ class Log():
         '''
         title = self.makeTitle()
         global newLogFile #The "global" scope here will avoid errors when multiple 'IOError exceptions' occur (even though it's very difficult to happen)
-        try:
+        try:       
+#-- "x" - Create - will create a file, returns an error if the file exist
+#-- "a" - Append - will append to the end of the file
+#-- "w" - Write  - will overwrite any existing content
             newLogFile = open(title, 'x') #'x' - create a new file and open it for writing
-            
+
         except IOError:
             self.FILE_ALREADY_EXISTS += 1
             self.createNewFile()
@@ -70,21 +84,32 @@ class Log():
         
         
         
-    def writeHeader(self, data):
-        '''
-        Write the first row with Timestamp,var1,...,varn\n
-        '''
-        LOG_HEADER = data.timestamp() #QUESTO DEVE ESSERE IL TIMESTAMP DEL DRONE
-        for var2log in data:
-            LOG_HEADER += var2log
+    #===========================================================================
+    # def writeHeader(self, data):
+    #     '''
+    #     Write the first row with Timestamp,var1,...,varn\n
+    #     '''
+    #     LOG_HEADER = data.timestamp() #QUESTO DEVE ESSERE IL TIMESTAMP DEL DRONE
+    #     for var2log in data:
+    #         LOG_HEADER += var2log
+    #===========================================================================
             
         
     def writeNewLog(self, data):
         '''
         Write the header and the log flow to the file
         '''
-        self.writeHeader(data)
+        #=======================================================================
+        # self.writeHeader(header)
+        #=======================================================================
         self.myLogFile.write(data + "\n")
+        
+        
+    def closeLog(self):
+        '''
+        Close the file
+        '''
+        self.myLogFile.close()
         
         
         
@@ -158,15 +183,4 @@ class Log():
         wrapC_intoPython = "https://intermediate-and-advanced-software-carpentry.readthedocs.io/en/latest/c++-wrapping.html"
         lastHope_butAlsoNot = "https://docs.python-guide.org/scenarios/clibs/"
         
-        
-        
-    def __init__(self, *args, **kwargs):
-        '''
-        Constructor
-        '''
-        self.sanitizeLogPath(kwargs['path'])
-        self.makeDirectory()
-        
-        self.createNewFile()
-        self.writeNewLog(*args)
         

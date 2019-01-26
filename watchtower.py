@@ -4,6 +4,8 @@ Created on Jan 24, 2019
 @author: mark
 '''
 from cflib.crazyflie import Commander, Crazyflie
+from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+import time
 
 #===============================================================================
 # Esempi di utilizzo per la classe Crazyflie
@@ -45,3 +47,92 @@ flightVars = [
                 ["yawrate",  "deg/s"],      #7
                 ["zdistance","m"]           #8
               ]
+
+
+class toInfinity():
+    
+    def __init__(self, uriDrone, flightList):
+        
+        if len(flightList) != 0:
+            
+            #Setting up connection
+            with SyncCrazyflie(uriDrone, cf=Crazyflie(rw_cache='./cache')) as scf:
+                cf = scf.cf
+        
+                cf.param.set_value('kalman.resetEstimation', '1')
+                time.sleep(0.1)
+                cf.param.set_value('kalman.resetEstimation', '0')
+                time.sleep(2)
+            
+            
+                for flight in flightList:
+                    if flight[0] != flightTypes[0]: #If the user selected a flight type different than None
+                        
+                        for repeat in range(int(flight[5])):
+                            
+                            print((flight[0]))
+                            if flight[0] == flightTypes[1]:
+                                cf.commander.send_setpoint(int(flight[1]),
+                                                           int(flight[2]),
+                                                           int(flight[3]),
+                                                           int(flight[4]))
+                                
+                            elif flight[0] == flightTypes[2]:
+                                cf.commander.send_velocity_world_setpoint(int(flight[1]),
+                                                           int(flight[2]),
+                                                           int(flight[3]),
+                                                           int(flight[4]))
+                                
+                            elif flight[0] == flightTypes[3]:
+                                cf.commander.send_zdistance_setpoint(int(flight[1]),
+                                                           int(flight[2]),
+                                                           int(flight[3]),
+                                                           int(flight[4]))
+                                
+                            elif flight[0] == flightTypes[4]:
+                                cf.commander.send_hover_setpoint(int(flight[1]),
+                                                           int(flight[2]),
+                                                           int(flight[3]),
+                                                           int(flight[4]))
+                            time.sleep(int(flight[6])/1000) #cast it to seconds
+                    
+                cf.commander.send_stop_setpoint()
+                
+        
+        Crazyflie(rw_cache='./cache').close_link()
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        

@@ -14,12 +14,11 @@ from Connection import findMyDrone
 from tkinter import StringVar, Radiobutton
 import time
 import threading
-import BaseLog as log
+from BaseLog import LoggingExample as log
 from variablesToLog import cluster
 import variablesToLog
 import watchtower
 from watchtower import flightTypes
-from numpy.lib.function_base import select
 
 # Matplotlib graphs
 
@@ -46,6 +45,7 @@ selectedDrone = ""
 logVars = variablesToLog.dictionary
 logGroups_EntryButtons = []
 logGroups_Values = []
+toLog = []
 
 flightTypes = watchtower.flightTypes
 flightVars = watchtower.flightVars
@@ -179,39 +179,51 @@ class welcomeConnected(tk.Frame):
     '''
     
     global selectedDrone
+        
     lg_Text = "You are connected to " + selectedDrone
     LARGE_FONT0 = ("Verdana", 14)
-    txt_logGroups = "Set your log groups"
-    txt_flightPoints = "Set your flight points"
+    txt_logGroups = "START LOG AND FLIGHT!"
     
     def __init__(self, root, controller):
-        tk.Frame.__init__(self, root)
-        label = ttk.Label(self,
-                         text=self.lg_Text,
-                         font=self.LARGE_FONT0)
-        label.grid(row=0, column=0, sticky="nsew")
-
         
-        #START LOGGING ONLY
-        button1 = ttk.Button(self,
-                           text=self.txt_logGroups,
-                           command=lambda: controller.showPage(root, logGroups)) #QUI DOVRÀ CAMBIARE IL COMMAND IN LOG_THIS
-        button1.grid()
+        print("1) " + selectedDrone)
+        if selectedDrone == "" or selectedDrone == None:
+            controller.showPage(root, droneScan)
+            
+        else:
+            tk.Frame.__init__(self, root)
+            label = ttk.Label(self,
+                             text=self.lg_Text,
+                             font=self.LARGE_FONT0)
+            label.grid(row=0, column=0, sticky="nsew")
+    
+            
+            #START LOGGING ONLY
+            button1 = ttk.Button(self,
+                               text=self.txt_logGroups,
+                               command=self.start_LogFlight(root, controller))
+            button1.grid()
         
-        #START FLIGHT ONLY
-        button1 = ttk.Button(self,
-                           text=self.txt_flightPoints,
-                           command=lambda: controller.showPage(root, flightPoints)) #QUI DOVRÀ CAMBIARE IL COMMAND IN FLIGHT_TO
-        button1.grid()
-
-        #UN ALTRO BUTTON PER 
-        #START LOG AND FLIGHT!
         
+    def start_LogFlight(self, root, controller):
+        global selectedDrone
+        print("2) " + selectedDrone)
+        if selectedDrone == "" or selectedDrone == None:
+            controller.showPage(root, droneScan)
+            
+        else:
+            self.startLogging()
+            self.startFlying()
+            
+            
 
     def startLogging(self):
+        saveLogGroupState(self)
         global logGroups_Values
         global toLog
         global selectedDrone
+        
+            
         if len(logGroups_Values) != 0:
             
             supportList = []
@@ -219,16 +231,27 @@ class welcomeConnected(tk.Frame):
                 for i in range(6):
                     if group[i+1] != "None":
                         supportList.append(group[i+1])
+                        
                 if len(supportList) != 0:
                     groupName = group[0]
-                    groupTime = group[7]
+                    groupTime = int(group[7])
                     c = cluster(groupName, groupTime, supportList)
                     toLog.append(c.getLogConfiguration())
                     
+        #print("This is my toLog list: " + toLog)
         if len(toLog) != 0:
             log(selectedDrone, toLog)
             
             
+    def startFlying(self):
+        saveFlightState(self)
+        global flightPoints_Values
+        global selectedDrone
+        
+        watchtower.toInfinity(selectedDrone, flightPoints_Values)
+            
+        
+    
     
 class flightPoints(tk.Frame):
     '''
@@ -360,7 +383,7 @@ class flightPoints(tk.Frame):
         global flightPoints_EntryButtons
         
         flightPoints_EntryButtons[flightID][0] = flightSelected
-        self.saveFlightState()
+        saveFlightState(self)
         controller.showPage(root, flightPoints)
             
             
@@ -566,33 +589,6 @@ class flightPoints(tk.Frame):
         #ADD A DELETE(id) BUTTON?
         
         
-    
-    def validateIntEntry(self, value):
-        '''
-        Validate user input data
-        '''
-        try:
-            if int(value) < 0:
-                return "0"
-            else:
-                return value
-        except:
-            return "0"
-            
-    
-    def validateThrust(self, value):
-        '''
-        Validate user input data for the thrust
-        It can range in [0, 65535]
-        '''
-        value = self.validateIntEntry(value)
-        try:
-            if int(value) > 65535:
-                return "65535"
-            else:
-                return value
-        except:
-            return "65535"
         
     
         
@@ -614,42 +610,96 @@ class flightPoints(tk.Frame):
         '''
         global flightPoints_EntryButtons
         self.addFlightPoint(len(flightPoints_EntryButtons), root, controller)
-        self.saveFlightState()
+        saveFlightState(self)
         controller.showPage(root, flightPoints)
 
         
-    def saveFlightState(self):
-        '''
-        Save the current values of flightPoints_EntryButtons into the global list flightPoints_Values
-        New instantiations of "addFlightForm" can thus be made by looking at flightPoints_Values 
-            so to set the user-selected values back to the form
-        Source: https://snakify.org/en/lessons/two_dimensional_lists_arrays/
-        '''
-        global flightTypes
-        global flightPoints_EntryButtons
-        global flightPoints_Values
-        flightPoints_Values = []
+def saveFlightState(self):
+    '''
+    Save the current values of flightPoints_EntryButtons into the global list flightPoints_Values
+    New instantiations of "addFlightForm" can thus be made by looking at flightPoints_Values 
+        so to set the user-selected values back to the form
+    Source: https://snakify.org/en/lessons/two_dimensional_lists_arrays/
+    '''
+    global flightTypes
+    global flightPoints_EntryButtons
+    global flightPoints_Values
+    flightPoints_Values = []
+    
+    for id_group in range(len(flightPoints_EntryButtons)):
+        supportList = []
+        flightType = flightPoints_EntryButtons[id_group][0]
         
-        for id_group in range(len(flightPoints_EntryButtons)):
-            supportList = []
-            flightType = flightPoints_EntryButtons[id_group][0]
-            
-            for id_entry in range(len(flightPoints_EntryButtons[id_group])):
-                if id_entry == 0: #This is the flightType
-                    value = flightPoints_EntryButtons[id_group][id_entry] #It will be a string
-                    
-                elif id_entry == 4: #This is the 4th var (thrust, yawrate, zdistance)
-                    if flightType == flightTypes[1]: #In case flightType == "send_setpoint
-                        value = self.validateThrust(value)
-                        
-                else: #In every other case we have the normal variables to validate
+        for id_entry in range(len(flightPoints_EntryButtons[id_group])):
+            print("id entry = " + str(id_entry))
+            if id_entry == 0: #This is the flightType
+                print("Sono stronzo")
+                value = flightPoints_EntryButtons[id_group][id_entry] #It will be a string
+                print("ma forte! " + value)
+                
+            if id_entry == 1 or id_entry == 2 or id_entry == 3 or id_entry == 4:
+                value = flightPoints_EntryButtons[id_group][id_entry].get()
+                value = validateVarsEntry(self, value)
+                
+            if id_entry == 4: #This is the 4th var (thrust, yawrate, zdistance)
+                if flightType == flightTypes[1]: #In case flightType == "send_setpoint
                     value = flightPoints_EntryButtons[id_group][id_entry].get()
-                    value = self.validateIntEntry(value)
+                    value = validateThrust(self, value)
                     
-                supportList.append(value)
-            flightPoints_Values.append(supportList)
-            
-        flightPoints_EntryButtons = []
+            if id_entry == 5 or id_entry == 6: #Repeat and Time to validate
+                print("Quess è: " + flightPoints_EntryButtons[id_group][id_entry].get())
+                value = flightPoints_EntryButtons[id_group][id_entry].get()
+                value = validateIntEntry(self, value)
+                
+            supportList.append(value)
+        flightPoints_Values.append(supportList)
+        
+    flightPoints_EntryButtons = []
+    
+    
+def validateVarsEntry(self, value):
+    '''
+    Validate user input data
+    '''
+    print("1) " + value)
+    try:
+        if value[0] == "-":
+            return str(0 - int(value[1:]))
+        else:
+            return value
+    except:
+        return "0"
+    
+    
+    
+def validateIntEntry(self, value):
+    '''
+    Validate user input data
+    '''
+    print("2) " + value)
+    try:
+        if int(value) < 0:
+            return "0"
+        else:
+            return value
+    except:
+        return "0"
+        
+
+def validateThrust(self, value):
+    '''
+    Validate user input data for the thrust
+    It can range in [0, 65535]
+    '''
+    print("3) " + value)
+    value = validateIntEntry(self, value)
+    try:
+        if int(value) > 65535:
+            return "65535"
+        else:
+            return value
+    except:
+        return "65535"
     
     
 class logGroups(tk.Frame):
@@ -912,28 +962,30 @@ class logGroups(tk.Frame):
         global logGroups_EntryButtons
         
         self.addLogGroup(len(logGroups_EntryButtons))
-        self.saveLogGroupState()
+        saveLogGroupState(self)
         controller.showPage(root, logGroups)
         
         
-    def saveLogGroupState(self):
-        '''
-        Save the current values of logGroup_EntryButtons into the global list logGroups_Values
-        New instantiations of "addLogGroup" can thus be made by looking at logGroups_Values 
-            so to set the user-selected values back to the form
-        Source: https://snakify.org/en/lessons/two_dimensional_lists_arrays/
-        '''
-        global logGroups_EntryButtons
-        global logGroups_Values
-        logGroups_Values = []
-        for id_group in range(len(logGroups_EntryButtons)):
-            appendThis = []
-            for id_entry in range(len(logGroups_EntryButtons[id_group])):
-                value = logGroups_EntryButtons[id_group][id_entry].get()
-                if value == "('None',)": #Don't ask. Dunno why it computes the initial "None" in this way, but it does
-                    value = "None"
-                appendThis.append(value)
-            logGroups_Values.append(appendThis)
-            
-        logGroups_EntryButtons = []
+def saveLogGroupState(self):
+    '''
+    Save the current values of logGroup_EntryButtons into the global list logGroups_Values
+    New instantiations of "addLogGroup" can thus be made by looking at logGroups_Values 
+        so to set the user-selected values back to the form
+    Source: https://snakify.org/en/lessons/two_dimensional_lists_arrays/
+    '''
+    print("I'm here babe")
+    global logGroups_EntryButtons
+    global logGroups_Values
+    
+    logGroups_Values = []
+    for id_group in range(len(logGroups_EntryButtons)):
+        appendThis = []
+        for id_entry in range(len(logGroups_EntryButtons[id_group])):
+            value = logGroups_EntryButtons[id_group][id_entry].get()
+            if value == "('None',)": #Don't ask. Dunno why it computes the initial "None" in this way, but it does
+                value = "None"
+            appendThis.append(value)
+        logGroups_Values.append(appendThis)
+        
+    logGroups_EntryButtons = []
         

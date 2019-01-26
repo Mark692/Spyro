@@ -106,7 +106,9 @@ class cluster():
                             period_in_ms = self.groupLoggingPeriod) 
         
         for var2log in self.vars2log:
-            logGroup.add_variable(str(var2log))
+            for var in var2log:
+                print("Sto aggiungendo questa variabile: " + var)
+                logGroup.add_variable(str(var))
         
         self.logCluster = logGroup
 

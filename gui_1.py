@@ -42,7 +42,13 @@ class MainCore(tk.Tk):
         connection_tab = tk.Menu(menuBar_container, tearoff = 0)
         connection_tab.add_command(label = "Connect to...",
                                    command = lambda:self.showPage(wholeWindowContainer, page.droneScan))
+        
+        connection_tab.add_command(label = "Start Logging",
+                                   command = lambda:self.showPage(wholeWindowContainer, page.welcomeConnected))
+        
+        
         connection_tab.add_separator()
+        
         connection_tab.add_command(label = "Exit",
                                    command = quit)
         menuBar_container.add_cascade(label = "Connection", 
