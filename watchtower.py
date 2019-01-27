@@ -56,7 +56,7 @@ class toInfinity():
         if len(flightList) != 0:
             
             #Setting up connection
-            with SyncCrazyflie(uriDrone, cf=Crazyflie(rw_cache='./cache')) as scf:
+            with SyncCrazyflie(uriDrone, cf = Crazyflie(rw_cache='./cache')) as scf:
                 cf = scf.cf
         
                 cf.param.set_value('kalman.resetEstimation', '1')
@@ -70,36 +70,33 @@ class toInfinity():
                         
                         for repeat in range(int(flight[5])):
                             
-                            print((flight[0]))
                             if flight[0] == flightTypes[1]:
-                                cf.commander.send_setpoint(int(flight[1]),
-                                                           int(flight[2]),
-                                                           int(flight[3]),
-                                                           int(flight[4]))
+                                cf.commander.send_setpoint(float(flight[1]),
+                                                           float(flight[2]),
+                                                           float(flight[3]),
+                                                           int(flight[4])) #Thrust
                                 
                             elif flight[0] == flightTypes[2]:
-                                cf.commander.send_velocity_world_setpoint(int(flight[1]),
-                                                           int(flight[2]),
-                                                           int(flight[3]),
-                                                           int(flight[4]))
+                                cf.commander.send_velocity_world_setpoint(float(flight[1]),
+                                                           float(flight[2]),
+                                                           float(flight[3]),
+                                                           float(flight[4]))
                                 
                             elif flight[0] == flightTypes[3]:
-                                cf.commander.send_zdistance_setpoint(int(flight[1]),
-                                                           int(flight[2]),
-                                                           int(flight[3]),
-                                                           int(flight[4]))
+                                cf.commander.send_zdistance_setpoint(float(flight[1]),
+                                                           float(flight[2]),
+                                                           float(flight[3]),
+                                                           float(flight[4]))
                                 
-                            elif flight[0] == flightTypes[4]:
-                                cf.commander.send_hover_setpoint(int(flight[1]),
-                                                           int(flight[2]),
-                                                           int(flight[3]),
-                                                           int(flight[4]))
-                            time.sleep(int(flight[6])/1000) #cast it to seconds
+                                cf.commander.send_hover_setpoint(float(flight[1]),
+                                                           float(flight[2]),
+                                                           float(flight[3]),
+                                                           float(flight[4]))
+                            time.sleep(float(flight[6])/1000) #cast it to seconds
                     
                 cf.commander.send_stop_setpoint()
                 
         
-        Crazyflie(rw_cache='./cache').close_link()
         
         
         

@@ -6,24 +6,75 @@ Created on Dec 5, 2018
 
 from cflib.crazyflie.log import LogConfig
 
-'''
-This module is a list of all the variables you may log with your CrazyFlie
-'''
-#Why not a class? https://stackoverflow.com/questions/5027400/constants-in-python-at-the-root-of-the-module-or-in-a-namespace-inside-the-modu
-
-loggingVariables = "usr/local/lib/python3.6/dist-packages/cflib/crazyflie/log.py"
-l4className = "LogConfig_line141"
-l4funcName  = "add_variable_line164"
-#self._lg_stab = LogConfig(name='Stabilizer', period_in_ms=1000)
-##name - Complete name of the variable in the form group.name = stabilizer.roll
-#self._lg_stab.add_variable('stabilizer.roll', 'float')
+#You can find loggable variables in crazyflie-firmware/src/module/src/
 
 
-stabilizer  = ["stabilizer.roll", "stabilizer.pitch", "stabilizer.yaw"]
-estimate    = ["estimate.x", "estimate.y", "estimate.z"]
+#CONTROLLER_PID.C
+controller  = ["controller.actuatorThrust", 
+               "controller.roll", "controller.pitch", "controller.yaw", 
+               "controller.rollRate", "controller.pitchRate", "controller.yawRate"]
+
+
+#CRTP
+crtp = ["crtp.rxRate", "crtp.rxDrpRte", "crtp.txRate"]
+
+
+#ESTIMATOR_KALMAN.C
+kalman_states = ["kalman_states.ox", "kalman_states.oy", "kalman_states.vx", "kalman_states.vy"]
+kalman_pred = ["kalman_pred.predNX", "kalman_pred.predNY", "kalman_pred.measNX", "kalman_pred.measNY"]
+kalman = ["kalman.inFlight", "kalman.stateX", "kalman.stateY", "kalman.stateZ", 
+          "kalman.statePX", "kalman.statePY", "kalman.statePZ", "kalman.stateD0", 
+          "kalman.stateD1", "kalman.stateD2", "kalman.stateSkew", "kalman.varX", 
+          "kalman.varY", "kalman.varXZ", "kalman.varPX", "kalman.varPY", 
+          "kalman.varPZ", "kalman.varD0", "kalman.varD1", "kalman.varD2", 
+          "kalman.varSkew", "kalman.q0", "kalman.q1", "kalman.q2", "kalman.q3"]
+
+
+#POSITION_CONTROLLER_PID.C
+posCtl = ["posCtl.targetVX", "posCtl.targetVY", "posCtl.targetVZ", 
+          "posCtl.targetX", "posCtl.targetY", "posCtl.targetZ", 
+          "posCtl.Xp", "posCtl.Xi", "posCtl.Xd", 
+          "posCtl.Yp", "posCtl.Yi", "posCtl.Yd", 
+          "posCtl.Zp", "posCtl.Zi", "posCtl.Zd", 
+          "posCtl.VXp", "posCtl.VXi", "posCtl.VXd", 
+          "posCtl.VZp", "posCtl.VZi", "posCtl.VZd" ]
+
+
+#POSITION_ESTIMATOR_ALTITUDE.C
+#WARNING: Not recognized by the Drone!
+posEstAlt = ["posEstAlt.estimatedZ", "posEstAlt.estVZ", "posEstAlt.velocityZ"]
+
+
+#RANGE.C
+range_c = ["range.front", "range.back", "range.up", "range.left", "range.right", "range.zrange"]
+
+
+#STABILIZER.C
+stabilizer  = ["stabilizer.roll", "stabilizer.pitch", "stabilizer.yaw", "stabilizer.thrust"]
+acc    = ["acc.x", "acc.y", "acc.z"]
+baro = ["baro.asl", "baro.temp", "baro.pressure"]
+gyro    = ["gyro.x", "gyro.y", "gyro.z"]
+mag    = ["mag.x", "mag.y", "mag.z"]
+stateEstimate    = ["stateEstimate.x", "stateEstimate.y", "stateEstimate.z"]
+ctrltarget  = ["ctrltarget.roll", "ctrltarget.pitch", "ctrltarget.yaw"]
+
+
+#MISSING VARIABLES FROM:
+#ATTITUDE_PID_CONTROLLER.C, CONTROLLER_MELLINGER.C, CRTP_LOCALIZATION_SERVICE.C, EXTRX.C, OUTLIERFILTER.C, sensfusion6
+#---
+
  
+#===============================================================================
+# dictionary = [*controller, *crtp, 
+#               *kalman_states, *kalman_pred, *kalman, 
+#               *posCtl, *posEstAlt, *range_c, 
+#               *stabilizer, *acc, *baro, *gyro, *mag, *stateEstimate, *ctrltarget]
+#===============================================================================
+
 #Add here all the possible logging groups available for the drone
-dictionary = [*stabilizer, *estimate]
+dictionary = [*controller, 
+              *kalman_states, *kalman_pred, 
+              *stabilizer, *acc, *stateEstimate]
 
 dictionary.insert(0, ["None"]) #Initial default value to display
 
@@ -107,7 +158,6 @@ class cluster():
         
         for var2log in self.vars2log:
             for var in var2log:
-                print("Sto aggiungendo questa variabile: " + var)
                 logGroup.add_variable(str(var))
         
         self.logCluster = logGroup

@@ -40,12 +40,8 @@ class MainCore(tk.Tk):
         
         #Tab 1 - Connection
         connection_tab = tk.Menu(menuBar_container, tearoff = 0)
-        connection_tab.add_command(label = "Connect to...",
+        connection_tab.add_command(label = "Start log and flight",
                                    command = lambda:self.showPage(wholeWindowContainer, page.droneScan))
-        
-        connection_tab.add_command(label = "Start Logging",
-                                   command = lambda:self.showPage(wholeWindowContainer, page.welcomeConnected))
-        
         
         connection_tab.add_separator()
         

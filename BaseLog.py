@@ -30,7 +30,7 @@ class LoggingExample:
     logGroup = []
     log = None
     
-    def __init__(self, droneLink, toLog = []):
+    def __init__(self, droneLink, toLog = [], disconnected_delay = 3):
         """
         Initialize and run the example with the specified droneLink 
         """
@@ -59,14 +59,8 @@ class LoggingExample:
             # Variable used to keep main loop occupied until disconnect
             self.is_connected = True
             
-            #self.flySync(droneLink)
+            self.delayedDisconnectDrone(disconnected_delay)
             
-        #=======================================================================
-        # else:
-        #     print("No drone provided. Going back to scan the radio channel!\n")
-        #     return Connection.findMyDrone()
-        #=======================================================================
-        
 
     def addNewLogGroup(self, groupName, loggingPeriod, *args):
         '''
@@ -122,7 +116,6 @@ class LoggingExample:
     def _stab_log_error(self, logconf, msg):
         """Callback from the log API when an error occurs"""
         print('Error when logging %s: %s' % (logconf.name, msg))
-        #self.log.closeLog()
         
         
 
@@ -138,7 +131,7 @@ class LoggingExample:
         at the speficied address)"""
         print('Connection to %s failed: %s' % (link_uri, msg))
         self.is_connected = False
-        self.log.closeLog()
+        self.log.close()
         
         
 
@@ -146,7 +139,7 @@ class LoggingExample:
         """Callback when disconnected after a connection has been made (i.e
         Crazyflie moves out of range)"""
         print('Connection to %s lost: %s' % (link_uri, msg))
-        self.log.closeLog()
+        self.log.close()
 
 
 
@@ -154,7 +147,6 @@ class LoggingExample:
         """Callback when the Crazyflie is disconnected (called in all cases)"""
         print('Disconnected from %s' % link_uri)
         self.is_connected = False
-        self.log.closeLog()
         
 
 
@@ -163,7 +155,6 @@ class LoggingExample:
         Disconnect the drone
         '''
         self.drone.close_link()
-        self.log.closeLog()
         
         
         
@@ -171,34 +162,11 @@ class LoggingExample:
         '''
         Disconnect the drone after a delay (in seconds)
         '''
-        Timer(delay, self.drone.close_link).start()
+        Timer(delay, self._cf.close_link).start()
+        
+        try:
+            self.log.close()
+        except:
+            None
         
         
-        
-    def flySync(self, uriDrone):
-        '''
-        Send the drone to fly.
-        This function correctly resets Kalman estimation
-        '''
-        timeWait = 0.1
-        range1 = 5
-        print("Il drone a cui sono connesso è: ", uriDrone)
-    
-        with SyncCrazyflie(uriDrone, cf=Crazyflie(rw_cache='./cache')) as scf:
-            cf = scf.cf
-    
-            cf.param.set_value('kalman.resetEstimation', '1')
-            time.sleep(0.1)
-            cf.param.set_value('kalman.resetEstimation', '0')
-            time.sleep(2)
-    
-            for y in range(range1):
-                cf.commander.send_hover_setpoint(0, 0, 0, y/5) #vx, vy, yawRate, zDistance
-                time.sleep(timeWait)
-    
-            for y in range(range1):
-                cf.commander.send_hover_setpoint(0, 0, 0, (range1 - y) / 45)
-                time.sleep(timeWait)
-    
-            cf.commander.send_stop_setpoint()
-

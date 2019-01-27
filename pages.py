@@ -13,12 +13,12 @@ from tkinter.tix import *
 from Connection import findMyDrone
 from tkinter import StringVar, Radiobutton
 import time
-import threading
+#import threading
 from BaseLog import LoggingExample as log
 from variablesToLog import cluster
 import variablesToLog
 import watchtower
-from watchtower import flightTypes
+#from watchtower import flightTypes
 
 # Matplotlib graphs
 
@@ -27,14 +27,13 @@ LARGE_FONT1 = ("Arial", 8)
 LARGE_FONT2 = ("Times New Roman", 14)
 LARGE_FONTg = ("Verdana", 22)
 
-welcomePageLabel = "This is our Home. Forever."
+welcomePageLabel = "Hi!"
 welcomePageButton = "Go back home"
 
-liveGraphLabel = "This log is amazing!"
-liveGraphButton = "Live Graph!"
+win_width = 1300
+win_height = 500
 
-staticGraphLabel = "Just some boring data..."
-staticGraphButton = "Look at our data"
+
 
 elapsedTime = 0
 connection = findMyDrone()
@@ -52,33 +51,45 @@ flightVars = watchtower.flightVars
 flightPoints_EntryButtons = []
 flightPoints_Values = []
 
- 
-def buttMessage(str2print):
-    print(str2print)
-    
+
     
 class WelcomePage(tk.Frame):
     '''
     tk.Frame - Frame used to host the WelcomePage
     '''
     
-    LARGE_FONT2 = ("Times New Roman", 14)
+    LARGE_FONT2 = ("Times New Roman", 12)
     txt_logGroups = "Log Groups"
     txt_flightPoints = "Flight Points"
     
     def __init__(self, root, controller):
-        tk.Frame.__init__(self, root)
+        tk.Frame.__init__(self, root, 
+                                width=win_width, 
+                                height=win_height)
         label = ttk.Label(self,
                          text=welcomePageLabel,
                          font=LARGE_FONT0)
-        label.grid(row=0, column=0, sticky="nsew")
+        label.grid(row=0, column=0, sticky="WE")
+        
+        ttk.Label(self,
+                         text="",
+                         font=LARGE_FONT2).grid(row=1, column=0, sticky="nsew")
         
         buttonSCAN = ttk.Button(self,
                            text="Scan for drones!",
                            #command=lambda: self.findDrones(root, controller))
                            command=lambda: controller.showPage(root, droneScan))
         
-        buttonSCAN.grid()
+        buttonSCAN.grid(row=2, column=0, sticky="WE")
+        
+        ttk.Label(self,
+                         text="",
+                         font=LARGE_FONT2).grid(row=3, column=0, sticky="nsew")
+        
+        label = ttk.Label(self,
+                         text="With me you can select a drone to connect to\nchoose the variables to log\nand set flight commands!",
+                         font=LARGE_FONT2)
+        label.grid(row=4, column=0, sticky="nsew")
     
         
 class droneScan(tk.Frame):
@@ -93,7 +104,9 @@ class droneScan(tk.Frame):
     LARGE_FONT0 = ("Verdana", 18)
     
     def __init__(self, root, controller):
-        tk.Frame.__init__(self, root)
+        tk.Frame.__init__(self, root, 
+                                width=win_width, 
+                                height=win_height)
         label = ttk.Label(self,
                          text=self.lg_Text,
                          font=self.LARGE_FONT0)
@@ -167,9 +180,6 @@ class droneScan(tk.Frame):
         if selectedDrone == "" or selectedDrone == None:
             controller.showPage(root, droneScan)
         else:
-            #print("Hai selezionato: " + selectedDrone) #Status bar in basso in cui compare il drone selezionato?
-            #log.LoggingExample(selectedDrone)
-            
             controller.showPage(root, welcomeConnected)
             
     
@@ -178,42 +188,42 @@ class welcomeConnected(tk.Frame):
     tk.Frame - Frame used to host the initial page after connecting to a drone
     '''
     
-    global selectedDrone
-        
-    lg_Text = "You are connected to " + selectedDrone
+    global selectedDrone 
+    #lg_Text = "You are connected to " + selectedDrone
     LARGE_FONT0 = ("Verdana", 14)
     txt_logGroups = "START LOG AND FLIGHT!"
     
     def __init__(self, root, controller):
         
-        print("1) " + selectedDrone)
         if selectedDrone == "" or selectedDrone == None:
             controller.showPage(root, droneScan)
             
         else:
-            tk.Frame.__init__(self, root)
+            tk.Frame.__init__(self, root, 
+                                width=win_width, 
+                                height=win_height)
             label = ttk.Label(self,
-                             text=self.lg_Text,
                              font=self.LARGE_FONT0)
+            label.configure(text = "You are connected to " + selectedDrone)
             label.grid(row=0, column=0, sticky="nsew")
     
             
-            #START LOGGING ONLY
             button1 = ttk.Button(self,
                                text=self.txt_logGroups,
-                               command=self.start_LogFlight(root, controller))
+                               command = lambda:self.start_LogFlight(root, controller))
             button1.grid()
         
         
     def start_LogFlight(self, root, controller):
         global selectedDrone
-        print("2) " + selectedDrone)
+        
         if selectedDrone == "" or selectedDrone == None:
             controller.showPage(root, droneScan)
             
         else:
             self.startLogging()
             self.startFlying()
+            controller.showPage(root, droneScan)
             
             
 
@@ -238,11 +248,27 @@ class welcomeConnected(tk.Frame):
                     c = cluster(groupName, groupTime, supportList)
                     toLog.append(c.getLogConfiguration())
                     
-        #print("This is my toLog list: " + toLog)
         if len(toLog) != 0:
-            log(selectedDrone, toLog)
-            
-            
+            delay = self.getFlightTimeLength()
+            if delay == float(0):
+                log(selectedDrone, toLog)
+            else:
+                delay += 10 #Add some extra delay at the end
+                log(selectedDrone, toLog, delay)
+    
+    
+    def getFlightTimeLength(self):
+        global flightPoints_Values
+        global flightTypes
+        
+        delay = 0
+        for f in flightPoints_Values:
+            if f[0] != flightTypes[0]:
+                delay += float(int(f[5]) * float(f[6]))
+                
+        return delay/1000
+        
+        
     def startFlying(self):
         saveFlightState(self)
         global flightPoints_Values
@@ -263,7 +289,9 @@ class flightPoints(tk.Frame):
     txt_logGroups = "Set your log groups"
     
     def __init__(self, root, controller):
-        tk.Frame.__init__(self, root)
+        tk.Frame.__init__(self, root, 
+                                width=win_width, 
+                                height=win_height)
         label = ttk.Label(self,
                          text=self.lg_Text,
                          font=self.LARGE_FONT0,
@@ -274,12 +302,12 @@ class flightPoints(tk.Frame):
         #Add the right-horizontal scrollbar
         #Source: https://stackoverflow.com/questions/3085696/adding-a-scrollbar-to-a-group-of-widgets-in-tkinter
         self.canvas = tk.Canvas(self, 
-                                width=1300, 
-                                height=500,
+                                width=win_width, 
+                                height=win_height,
                                 borderwidth=0)
-        self.frame = tk.Frame(self.canvas, 
-                                width=1300, 
-                                height=500)
+        self.frame = tk.Frame(self.canvas,
+                                width=win_width, 
+                                height=win_height)
         self.vsb = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=self.vsb.set)
 
@@ -631,11 +659,8 @@ def saveFlightState(self):
         flightType = flightPoints_EntryButtons[id_group][0]
         
         for id_entry in range(len(flightPoints_EntryButtons[id_group])):
-            print("id entry = " + str(id_entry))
             if id_entry == 0: #This is the flightType
-                print("Sono stronzo")
                 value = flightPoints_EntryButtons[id_group][id_entry] #It will be a string
-                print("ma forte! " + value)
                 
             if id_entry == 1 or id_entry == 2 or id_entry == 3 or id_entry == 4:
                 value = flightPoints_EntryButtons[id_group][id_entry].get()
@@ -647,7 +672,6 @@ def saveFlightState(self):
                     value = validateThrust(self, value)
                     
             if id_entry == 5 or id_entry == 6: #Repeat and Time to validate
-                print("Quess è: " + flightPoints_EntryButtons[id_group][id_entry].get())
                 value = flightPoints_EntryButtons[id_group][id_entry].get()
                 value = validateIntEntry(self, value)
                 
@@ -661,12 +685,11 @@ def validateVarsEntry(self, value):
     '''
     Validate user input data
     '''
-    print("1) " + value)
     try:
         if value[0] == "-":
-            return str(0 - int(value[1:]))
+            return str(0 - float(value[1:]))
         else:
-            return value
+            return str(float(value))
     except:
         return "0"
     
@@ -676,7 +699,6 @@ def validateIntEntry(self, value):
     '''
     Validate user input data
     '''
-    print("2) " + value)
     try:
         if int(value) < 0:
             return "0"
@@ -691,7 +713,6 @@ def validateThrust(self, value):
     Validate user input data for the thrust
     It can range in [0, 65535]
     '''
-    print("3) " + value)
     value = validateIntEntry(self, value)
     try:
         if int(value) > 65535:
@@ -731,12 +752,12 @@ class logGroups(tk.Frame):
         #Add the right-horizontal scrollbar
         #Source: https://stackoverflow.com/questions/3085696/adding-a-scrollbar-to-a-group-of-widgets-in-tkinter
         self.canvas = tk.Canvas(self, 
-                                width=1300, 
-                                height=500,
+                                width=win_width, 
+                                height=win_height,
                                 borderwidth=0)
-        self.frame = tk.Frame(self.canvas, 
-                                width=1300, 
-                                height=500)
+        self.frame = tk.Frame(self.canvas,
+                                width=win_width, 
+                                height=win_height)
         self.vsb = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=self.vsb.set)
 
@@ -973,7 +994,6 @@ def saveLogGroupState(self):
         so to set the user-selected values back to the form
     Source: https://snakify.org/en/lessons/two_dimensional_lists_arrays/
     '''
-    print("I'm here babe")
     global logGroups_EntryButtons
     global logGroups_Values
     
