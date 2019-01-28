@@ -30,16 +30,25 @@ class LoggingExample:
     logGroup = []
     log = None
     
+    #To log multiple groups at the same time it should be considered to 
+    #make this class iterable
+    
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        None
+    
+    
     def __init__(self, droneLink, toLog = [], disconnected_delay = 3):
         """
         Initialize and run the example with the specified droneLink 
         """
-
         if(droneLink != ""):
             self._cf = Crazyflie(rw_cache='./cache')
             
             #===================================================================
-            # self.addNewLogGroup("Stime di Stato", 50, "")
+            # self.addNewLogGroup("Stime di Stato", 50, "")00
             # self.addNewLogGroup("Coordinate", 10, "gps.lat", "gps.lon")
             #===================================================================
             #self.addNewLogGroup("Pressione", 500,"baro.pressure")
