@@ -299,6 +299,9 @@ class flightPoints(tk.Frame):
         label.grid(row=0, column=0, columnspan = 3, sticky="EW")
         
         
+        saveLogGroupState(self)
+        
+        
         #Add the right-horizontal scrollbar
         #Source: https://stackoverflow.com/questions/3085696/adding-a-scrollbar-to-a-group-of-widgets-in-tkinter
         self.canvas = tk.Canvas(self, 
@@ -652,33 +655,34 @@ def saveFlightState(self):
     global flightTypes
     global flightPoints_EntryButtons
     global flightPoints_Values
-    flightPoints_Values = []
     
-    for id_group in range(len(flightPoints_EntryButtons)):
-        supportList = []
-        flightType = flightPoints_EntryButtons[id_group][0]
-        
-        for id_entry in range(len(flightPoints_EntryButtons[id_group])):
-            if id_entry == 0: #This is the flightType
-                value = flightPoints_EntryButtons[id_group][id_entry] #It will be a string
-                
-            if id_entry == 1 or id_entry == 2 or id_entry == 3 or id_entry == 4:
-                value = flightPoints_EntryButtons[id_group][id_entry].get()
-                value = validateVarsEntry(self, value)
-                
-            if id_entry == 4: #This is the 4th var (thrust, yawrate, zdistance)
-                if flightType == flightTypes[1]: #In case flightType == "send_setpoint
-                    value = flightPoints_EntryButtons[id_group][id_entry].get()
-                    value = validateThrust(self, value)
+    if len(flightPoints_EntryButtons) > 0:
+        flightPoints_Values = []
+        for id_group in range(len(flightPoints_EntryButtons)):
+            supportList = []
+            flightType = flightPoints_EntryButtons[id_group][0]
+            
+            for id_entry in range(len(flightPoints_EntryButtons[id_group])):
+                if id_entry == 0: #This is the flightType
+                    value = flightPoints_EntryButtons[id_group][id_entry] #It will be a string
                     
-            if id_entry == 5 or id_entry == 6: #Repeat and Time to validate
-                value = flightPoints_EntryButtons[id_group][id_entry].get()
-                value = validateIntEntry(self, value)
-                
-            supportList.append(value)
-        flightPoints_Values.append(supportList)
-        
-    flightPoints_EntryButtons = []
+                if id_entry == 1 or id_entry == 2 or id_entry == 3 or id_entry == 4:
+                    value = flightPoints_EntryButtons[id_group][id_entry].get()
+                    value = validateVarsEntry(self, value)
+                    
+                if id_entry == 4: #This is the 4th var (thrust, yawrate, zdistance)
+                    if flightType == flightTypes[1]: #In case flightType == "send_setpoint
+                        value = flightPoints_EntryButtons[id_group][id_entry].get()
+                        value = validateThrust(self, value)
+                        
+                if id_entry == 5 or id_entry == 6: #Repeat and Time to validate
+                    value = flightPoints_EntryButtons[id_group][id_entry].get()
+                    value = validateIntEntry(self, value)
+                    
+                supportList.append(value)
+            flightPoints_Values.append(supportList)
+            
+        flightPoints_EntryButtons = []
     
     
 def validateVarsEntry(self, value):
@@ -747,6 +751,9 @@ class logGroups(tk.Frame):
                          font=self.LARGE_FONT0,
                          justify="right")
         label.grid(row=0, column=0, columnspan = 3, sticky="EW")
+        
+        
+        saveFlightState(self)
         
         
         #Add the right-horizontal scrollbar
@@ -997,15 +1004,16 @@ def saveLogGroupState(self):
     global logGroups_EntryButtons
     global logGroups_Values
     
-    logGroups_Values = []
-    for id_group in range(len(logGroups_EntryButtons)):
-        appendThis = []
-        for id_entry in range(len(logGroups_EntryButtons[id_group])):
-            value = logGroups_EntryButtons[id_group][id_entry].get()
-            if value == "('None',)": #Don't ask. Dunno why it computes the initial "None" in this way, but it does
-                value = "None"
-            appendThis.append(value)
-        logGroups_Values.append(appendThis)
-        
-    logGroups_EntryButtons = []
+    if len(logGroups_EntryButtons) > 0:
+        logGroups_Values = []
+        for id_group in range(len(logGroups_EntryButtons)):
+            appendThis = []
+            for id_entry in range(len(logGroups_EntryButtons[id_group])):
+                value = logGroups_EntryButtons[id_group][id_entry].get()
+                if value == "('None',)": #Don't ask. Dunno why it computes the initial "None" in this way, but it does
+                    value = "None"
+                appendThis.append(value)
+            logGroups_Values.append(appendThis)
+            
+        logGroups_EntryButtons = []
         

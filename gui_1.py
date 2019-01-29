@@ -56,10 +56,12 @@ class MainCore(tk.Tk):
         connection_tab = tk.Menu(menuBar_container, tearoff = 0)
         connection_tab.add_command(label = "Edit log groups",
                                    command = lambda:self.showPage(wholeWindowContainer, page.logGroups))
-        connection_tab.add_separator()
-        connection_tab.add_command(label = "Info about logging"
-                                   #, command = quit
-                                   )
+        #=======================================================================
+        # connection_tab.add_separator()
+        # connection_tab.add_command(label = "Info about logging"
+        #                            #, command = quit
+        #                            )
+        #=======================================================================
         menuBar_container.add_cascade(label = "Log Groups", 
                                       menu = connection_tab)
         self.addVerticalMenuSeparator(menuBar_container)
@@ -69,10 +71,12 @@ class MainCore(tk.Tk):
         connection_tab = tk.Menu(menuBar_container, tearoff = 0)
         connection_tab.add_command(label = "Set flight points",
                                    command = lambda:self.showPage(wholeWindowContainer, page.flightPoints))
-        connection_tab.add_separator()
-        connection_tab.add_command(label = "Info about flight"
-                                   #, command = quit
-                                   )
+        #=======================================================================
+        # connection_tab.add_separator()
+        # connection_tab.add_command(label = "Info about flight"
+        #                            #, command = quit
+        #                            )
+        #=======================================================================
         menuBar_container.add_cascade(label = "Flight Points", 
                                       menu = connection_tab)
 
